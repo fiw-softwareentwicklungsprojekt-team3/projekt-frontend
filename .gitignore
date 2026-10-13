@@ -1,0 +1,29 @@
+# Secrets and local config
+.env
+.env.*
+!.env.example
+application-local.properties
+application-local.yml
+
+# IDEs
+.idea/
+*.iml
+
+# Backend (Maven / Spring Boot)
+target/
+*.log
+
+# Frontend (Angular / Node)
+node_modules/
+dist/
+.angular/
+coverage/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VS Code: ignore by default, share only these
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json

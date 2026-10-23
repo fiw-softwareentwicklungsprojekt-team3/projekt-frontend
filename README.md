@@ -1,6 +1,9 @@
 # projekt-frontend
 
 [Zur Architektur-Dokumentation](docs/architektur.md)
+
+![Frontend CI](https://github.com/fiw-softwareentwicklungsprojekt-team3/projekt-frontend/actions/workflows/frontend.yml/badge.svg)
+
 ## Voraussetzungen
 
 - Node.js: `v24.15.0`

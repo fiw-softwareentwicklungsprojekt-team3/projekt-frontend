@@ -1,1 +1,43 @@
-/* You can add global styles to this file, and also import other style files */
+@use '@angular/material' as mat;
+
+html {
+  @include mat.theme((
+    color: (
+      primary: mat.$chartreuse-palette,
+      tertiary: mat.$azure-palette
+    ),
+    typography: Roboto,
+    density: 0
+  ));
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  background-color: var(--mat-sys-surface, #faf9fd);
+}
+
+// HTW Berlin Corporate Design & Farben:
+:root {
+  // Offizielle Farben der HTW Berlin:
+  --htw-green: #76B900;          // Primärfarbe (Lehre & Forschung)
+  --htw-green-dark: #588b00;     // Dunkleres Grün für hohen Kontrast
+  --htw-blue: #0082D1;           // Sekundärfarbe (Hochschulverwaltung & Service)
+  --htw-orange: #FF5F00;         // Sekundärfarbe (Infrastruktur & Mensa)
+  --htw-grey: #AFAFAF;           // Grau
+
+  // Material Theme Anpassungen:
+  --mat-sys-primary: #76B900;
+  --mat-sys-on-primary: #121e00;
+  --mat-sys-secondary: #0082D1;
+  --mat-sys-on-secondary: #ffffff;
+  --mat-sys-error: #d32f2f;
+
+  // Statusfarben:
+  --status-bestanden: #76B900;     // HTW-Grün für bestanden / erfolgreich
+  --status-belegt: #0082D1;        // Blau für belegt / angemeldet
+  --status-warnung: #FF5F00;       // Orange für Warnung / Frist
+  --status-gesperrt: #d32f2f;      // Rot für gesperrt / nicht bestanden
+  --status-offen: #757575;         // Grau für offen / noch nicht belegt
+}

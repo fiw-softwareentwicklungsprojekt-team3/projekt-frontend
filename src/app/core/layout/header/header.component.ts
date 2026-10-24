@@ -62,12 +62,12 @@ import { AuthService } from '../../services/auth.service';
                 <span class="login-title">Anmeldung</span>
               </div>
 
-              <!-- Option: Studierende oder Professorin -->
+              <!-- Option: Studierende:r oder Lehrende:r -->
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Rolle</mat-label>
                 <mat-select [(ngModel)]="selectedRolle">
-                  <mat-option value="STUDIERENDE">Studierende</mat-option>
-                  <mat-option value="PROFESSOR_IN">Professorin</mat-option>
+                  <mat-option value="STUDIERENDE">Studierende:r</mat-option>
+                  <mat-option value="PROFESSOR_IN">Lehrende:r</mat-option>
                 </mat-select>
               </mat-form-field>
 
@@ -282,8 +282,8 @@ export class HeaderComponent {
 
   protected rolleLabel(): string {
     const rolle = this.authService.aktuelleRolle();
-    if (rolle === 'STUDIERENDE') return 'Studierende';
-    if (rolle === 'PROFESSOR_IN') return 'Professorin';
+    if (rolle === 'STUDIERENDE') return 'Studierende:r';
+    if (rolle === 'PROFESSOR_IN') return 'Lehrende:r';
     return '';
   }
 

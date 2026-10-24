@@ -40,8 +40,8 @@ import { AuthService } from '../../core/services/auth.service';
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>Ich bin</mat-label>
                   <mat-select [(ngModel)]="regRolle" name="regRolle">
-                    <mat-option value="STUDIERENDE">Studierende / Studierender</mat-option>
-                    <mat-option value="PROFESSOR_IN">Professorin / Professor</mat-option>
+                    <mat-option value="STUDIERENDE">Studierende:r</mat-option>
+                    <mat-option value="PROFESSOR_IN">Lehrende:r</mat-option>
                   </mat-select>
                 </mat-form-field>
 

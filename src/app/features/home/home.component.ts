@@ -161,15 +161,10 @@ export class HomeComponent {
   protected startsemester = 'WS 2025';
   protected readonly startsemesterOptions = [
     'WS 2021',
-    'SS 2022',
     'WS 2022',
-    'SS 2023',
     'WS 2023',
-    'SS 2024',
     'WS 2024',
-    'SS 2025',
     'WS 2025',
-    'SS 2026',
     'WS 2026'
   ];
 

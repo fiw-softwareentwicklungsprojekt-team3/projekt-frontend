@@ -1,5 +1,5 @@
-import { Component, inject } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { Component, inject, OnInit } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,12 +9,12 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { AuthService } from '../../services/auth.service';
+import { HealthService } from '../../services/health.service';
 
 @Component({
   selector: 'app-header',
   imports: [
     RouterLink,
-    RouterLinkActive,
     FormsModule,
     MatToolbarModule,
     MatButtonModule,
@@ -35,15 +35,27 @@ import { AuthService } from '../../services/auth.service';
       <!-- 2. Rollenbasierte Navigation -->
       <nav class="nav-links">
         @if (authService.aktuelleRolle() === 'STUDIERENDE') {
-          <a mat-button routerLink="/modules" routerLinkActive="active-link">Module</a>
-          <a mat-button routerLink="/plan" routerLinkActive="active-link">Mein Studienplan</a>
+          <a routerLink="/modules" class="nav-link">Module</a>
+          <a routerLink="/plan" class="nav-link">Mein Studienplan</a>
         } @else if (authService.aktuelleRolle() === 'PROFESSOR_IN') {
-          <a mat-button routerLink="/dashboard" routerLinkActive="active-link">Dashboard</a>
-          <a mat-button routerLink="/modules" routerLinkActive="active-link">Modulangebote</a>
+          <a routerLink="/dashboard" class="nav-link">Dashboard</a>
+          <a routerLink="/modules" class="nav-link">Modulangebote</a>
         }
       </nav>
 
       <span class="spacer"></span>
+
+      @if (healthStatus !== 'unknown') {
+        <div
+          class="backend-status"
+          [class.backend-status--online]="healthStatus === 'online'"
+          [class.backend-status--offline]="healthStatus === 'offline'"
+          [title]="healthStatus === 'online' ? 'Backend erreichbar' : 'Backend nicht erreichbar'"
+        >
+          <span class="backend-status__dot"></span>
+          <span>{{ healthStatus === 'online' ? 'Backend online' : 'Backend offline' }}</span>
+        </div>
+      }
 
       <!-- 3. Benutzerbereich (Login oder Angemeldet + Logout) -->
       <div class="user-section">
@@ -71,10 +83,10 @@ import { AuthService } from '../../services/auth.service';
                 </mat-select>
               </mat-form-field>
 
-              <!-- Eingabefeld: Benutzername -->
+              <!-- Eingabefeld: E-Mail -->
               <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Benutzername</mat-label>
-                <input matInput [(ngModel)]="benutzername" placeholder="z. B. s0123456" />
+                <mat-label>E-Mail</mat-label>
+                <input matInput type="email" [(ngModel)]="email" placeholder="name@student.htw-berlin.de" />
               </mat-form-field>
 
               <!-- Eingabefeld: Passwort -->
@@ -119,8 +131,8 @@ import { AuthService } from '../../services/auth.service';
       position: sticky;
       top: 0;
       z-index: 1000;
-      background-color: var(--htw-green, #76B900) !important;
-      color: #121e00 !important;
+      background-color: var(--htw-green, var(--mat-sys-primary)) !important;
+      color: var(--mat-sys-on-primary, #121e00) !important;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
     }
 
@@ -144,27 +156,41 @@ import { AuthService } from '../../services/auth.service';
 
     .nav-links {
       display: flex;
-      gap: 0.5rem;
+      align-items: center;
+      gap: 0.25rem;
+      flex-wrap: wrap;
     }
 
-    .nav-links a {
-      font-weight: 600;
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 0.5rem;
       color: #121e00 !important;
-      opacity: 0.9;
-      border-radius: 4px;
-      transition: opacity 0.2s, background-color 0.2s;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      background: transparent;
+      border: 1px solid transparent;
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
     }
 
-    .nav-links a:hover {
-      opacity: 1;
-      background: rgba(18, 30, 0, 0.1);
+    .nav-link:hover {
+      background: rgba(18, 30, 0, 0.04);
+      border-color: rgba(18, 30, 0, 0.08);
+      color: #121e00 !important;
+    }
+
+    .nav-link:active {
+      background: rgba(18, 30, 0, 0.08);
     }
 
     .active-link {
-      background: rgba(18, 30, 0, 0.15) !important;
-      opacity: 1 !important;
-      border-bottom: 2px solid #121e00;
-      border-radius: 4px 4px 0 0;
+      background: rgba(18, 30, 0, 0.06) !important;
+      border-color: rgba(18, 30, 0, 0.08);
+      color: #121e00 !important;
     }
 
     .spacer {
@@ -175,6 +201,40 @@ import { AuthService } from '../../services/auth.service';
       display: flex;
       align-items: center;
       gap: 0.75rem;
+    }
+
+    .backend-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      line-height: 1;
+      opacity: 0.88;
+      background: rgba(18, 30, 0, 0.12);
+      color: #121e00;
+      border: 1px solid rgba(18, 30, 0, 0.12);
+    }
+
+    .backend-status__dot {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 50%;
+      display: inline-block;
+      background: currentColor;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+    }
+
+    .backend-status--online {
+      color: #1e5f00;
+      background: rgba(118, 185, 0, 0.18);
+    }
+
+    .backend-status--offline {
+      color: #8a1f1f;
+      background: rgba(211, 47, 47, 0.12);
     }
 
     .login-trigger-btn {
@@ -208,7 +268,7 @@ import { AuthService } from '../../services/auth.service';
     }
 
     .login-icon {
-      color: #76B900;
+      color: var(--htw-green);
     }
 
     .login-title {
@@ -223,8 +283,8 @@ import { AuthService } from '../../services/auth.service';
     .submit-btn {
       margin-top: 0.5rem;
       font-weight: 600;
-      background-color: #76B900 !important;
-      color: #121e00 !important;
+      background-color: var(--htw-green) !important;
+      color: var(--mat-sys-on-primary, #121e00) !important;
     }
 
     .forgot-password-container {
@@ -271,14 +331,28 @@ import { AuthService } from '../../services/auth.service';
     }
   `]
 })
-export class HeaderComponent {
+export class HeaderComponent implements OnInit {
   protected readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly healthService = inject(HealthService);
+
+  protected healthStatus: 'online' | 'offline' | 'unknown' = 'unknown';
 
   // Formular-Felder für das Login-Dropdown:
   protected selectedRolle: 'STUDIERENDE' | 'PROFESSOR_IN' = 'STUDIERENDE';
-  protected benutzername = '';
+  protected email = '';
   protected passwort = '';
+
+  ngOnInit(): void {
+    this.healthService.getHealth().subscribe({
+      next: () => {
+        this.healthStatus = 'online';
+      },
+      error: () => {
+        this.healthStatus = 'offline';
+      }
+    });
+  }
 
   protected rolleLabel(): string {
     const rolle = this.authService.aktuelleRolle();
@@ -288,9 +362,9 @@ export class HeaderComponent {
   }
 
   protected doLogin(trigger: MatMenuTrigger): void {
-    this.authService.login(this.selectedRolle, this.benutzername);
+    this.authService.login(this.selectedRolle, this.email);
     trigger.closeMenu();
-    this.benutzername = '';
+    this.email = '';
     this.passwort = '';
   }
 

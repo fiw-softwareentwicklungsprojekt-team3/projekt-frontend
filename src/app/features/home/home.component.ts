@@ -36,22 +36,6 @@ import { AuthService } from '../../core/services/auth.service';
 
             <mat-card-content class="card-body">
               <form class="register-form" (submit)="$event.preventDefault()">
-                <!-- Rollen-Auswahl -->
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Ich bin</mat-label>
-                  <mat-select [(ngModel)]="regRolle" name="regRolle">
-                    <mat-option value="STUDIERENDE">Studierende:r</mat-option>
-                    <mat-option value="PROFESSOR_IN">Lehrende:r</mat-option>
-                  </mat-select>
-                </mat-form-field>
-
-                <!-- Matrikelnummer / Kürzel -->
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label>Matrikelnummer / HTW-Kürzel</mat-label>
-                  <input matInput [(ngModel)]="matrikelnummer" name="matrikelnummer" placeholder="z. B. s0512345" />
-                  <mat-icon matSuffix>badge</mat-icon>
-                </mat-form-field>
-
                 <!-- E-Mail -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>HTW E-Mail-Adresse</mat-label>
@@ -64,6 +48,17 @@ import { AuthService } from '../../core/services/auth.service';
                   <mat-label>Passwort wählen</mat-label>
                   <input matInput type="password" [(ngModel)]="passwort" name="passwort" placeholder="Mindestens 8 Zeichen" />
                   <mat-icon matSuffix>lock</mat-icon>
+                </mat-form-field>
+
+                <!-- Startsemester -->
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Startsemester</mat-label>
+                  <mat-select [(ngModel)]="startsemester" name="startsemester">
+                    @for (semester of startsemesterOptions; track semester) {
+                      <mat-option [value]="semester">{{ semester }}</mat-option>
+                    }
+                  </mat-select>
+                  <mat-icon matSuffix>event</mat-icon>
                 </mat-form-field>
 
                 <!-- Registrieren-Button (macht aktuell noch nichts) -->
@@ -139,8 +134,8 @@ import { AuthService } from '../../core/services/auth.service';
       padding: 0.75rem 1rem;
       font-size: 1rem;
       font-weight: 700;
-      background-color: var(--htw-green, #76B900) !important;
-      color: #121e00 !important;
+      background-color: var(--htw-green, var(--mat-sys-primary)) !important;
+      color: var(--mat-sys-on-primary, #121e00) !important;
       border-radius: 8px;
     }
 
@@ -161,10 +156,22 @@ export class HomeComponent {
   protected readonly authService = inject(AuthService);
 
   // Formularfelder für die Registrierung:
-  protected regRolle: 'STUDIERENDE' | 'PROFESSOR_IN' = 'STUDIERENDE';
-  protected matrikelnummer = '';
   protected email = '';
   protected passwort = '';
+  protected startsemester = 'WS 2025';
+  protected readonly startsemesterOptions = [
+    'WS 2021',
+    'SS 2022',
+    'WS 2022',
+    'SS 2023',
+    'WS 2023',
+    'SS 2024',
+    'WS 2024',
+    'SS 2025',
+    'WS 2025',
+    'SS 2026',
+    'WS 2026'
+  ];
 
   protected onRegister(): void {
     // Es soll aktuell noch nichts passieren beim Klick auf "Konto erstellen"

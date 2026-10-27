@@ -108,7 +108,7 @@ import { AuthService } from '../../core/services/auth.service';
 
     .card-avatar {
       background-color: rgba(118, 185, 0, 0.2);
-      color: #3b5d00;
+      color: var(--htw-green-dark);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -135,19 +135,19 @@ import { AuthService } from '../../core/services/auth.service';
       font-size: 1rem;
       font-weight: 700;
       background-color: var(--htw-green, var(--mat-sys-primary)) !important;
-      color: var(--mat-sys-on-primary, #121e00) !important;
+      color: var(--mat-sys-on-primary) !important;
       border-radius: 8px;
     }
 
     .card-footer {
       padding: 0.85rem 1.5rem;
-      background: #f8f9fa;
-      border-top: 1px solid #ebebeb;
+      background: var(--mat-sys-surface, #f8f9fa);
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
     }
 
     .footer-hint {
       font-size: 0.85rem;
-      color: #666;
+      color: var(--status-offen);
       line-height: 1.4;
     }
   `]

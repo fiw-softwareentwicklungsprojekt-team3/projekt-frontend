@@ -1,0 +1,98 @@
+<mat-toolbar color="primary" class="header-toolbar">
+  <!-- 1. Logo / App-Name -->
+  <div class="logo-section" routerLink="/">
+    <mat-icon class="logo-icon">school</mat-icon>
+    <span class="app-title">HTW Studyplanner</span>
+  </div>
+
+  <!-- 2. Rollenbasierte Navigation -->
+  <nav class="nav-links">
+    @if (authService.aktuelleRolle() === 'STUDIERENDE') {
+      <a routerLink="/modules" class="nav-link">Module</a>
+      <a routerLink="/plan" class="nav-link">Mein Studienplan</a>
+    } @else if (authService.aktuelleRolle() === 'PROFESSOR_IN') {
+      <a routerLink="/dashboard" class="nav-link">Dashboard</a>
+      <a routerLink="/modules" class="nav-link">Modulangebote</a>
+    }
+  </nav>
+
+  <span class="spacer"></span>
+
+  @if (healthStatus !== 'unknown') {
+    <div
+      class="backend-status"
+      [class.backend-status--online]="healthStatus === 'online'"
+      [class.backend-status--offline]="healthStatus === 'offline'"
+      [title]="healthStatus === 'online' ? 'Backend erreichbar' : 'Backend nicht erreichbar'"
+    >
+      <span class="backend-status__dot"></span>
+      <span>{{ healthStatus === 'online' ? 'Backend online' : 'Backend offline' }}</span>
+    </div>
+  }
+
+  <!-- 3. Benutzerbereich (Login oder Angemeldet + Logout) -->
+  <div class="user-section">
+    @if (authService.aktuelleRolle() === null) {
+      <!-- Wenn NICHT angemeldet: Login-Button -->
+      <button mat-button [matMenuTriggerFor]="loginMenu" #loginTrigger="matMenuTrigger" class="login-trigger-btn">
+        <mat-icon>login</mat-icon>
+        <span>Login</span>
+      </button>
+
+      <!-- Ausklappbares Login-Menü mit Rollen-Auswahl und Feldern -->
+      <mat-menu #loginMenu="matMenu" xPosition="before" class="login-menu-panel">
+        <div class="login-dropdown-container" (click)="$event.stopPropagation()">
+          <div class="login-header">
+            <mat-icon class="login-icon">account_circle</mat-icon>
+            <span class="login-title">Anmeldung</span>
+          </div>
+
+          <!-- Option: Studierende:r oder Lehrende:r -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Rolle</mat-label>
+            <mat-select [(ngModel)]="selectedRolle">
+              <mat-option value="STUDIERENDE">Studierende:r</mat-option>
+              <mat-option value="PROFESSOR_IN">Lehrende:r</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Eingabefeld: E-Mail -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>E-Mail</mat-label>
+            <input matInput type="email" [(ngModel)]="email" placeholder="name@student.htw-berlin.de" />
+          </mat-form-field>
+
+          <!-- Eingabefeld: Passwort -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Passwort</mat-label>
+            <input matInput type="password" [(ngModel)]="passwort" placeholder="Passwort" (keyup.enter)="doLogin(loginTrigger)" />
+          </mat-form-field>
+
+          <!-- Anmelde-Button -->
+          <button mat-flat-button class="full-width submit-btn" (click)="doLogin(loginTrigger)">
+            <mat-icon>login</mat-icon> Anmelden
+          </button>
+
+          <!-- Passwort vergessen -->
+          <div class="forgot-password-container">
+            <a class="forgot-password-link" href="javascript:void(0)" (click)="$event.preventDefault()">
+              Passwort vergessen?
+            </a>
+          </div>
+        </div>
+      </mat-menu>
+    } @else {
+      <!-- Wenn ANGEMELDET: Rolle-Badge und sichtbarer Logout-Button -->
+      <div class="logged-in-badge">
+        <mat-icon>{{ authService.aktuelleRolle() === 'STUDIERENDE' ? 'school' : 'psychology' }}</mat-icon>
+        <span>{{ rolleLabel() }}</span>
+      </div>
+
+      <button mat-button (click)="logout()" class="logout-btn" title="Vom System abmelden">
+        <mat-icon>logout</mat-icon>
+        <span>Logout</span>
+      </button>
+    }
+  </div>
+</mat-toolbar>
+

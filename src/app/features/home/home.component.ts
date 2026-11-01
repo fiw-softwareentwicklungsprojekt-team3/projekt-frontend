@@ -8,6 +8,15 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { AuthService } from '../../core/services/auth.service';
 
+/**
+ * Liefert die letzten Wintersemester, z. B. ["WS 2021", ..., "WS 2026"].
+ * Das Wintersemester beginnt im Oktober (getMonth() = 9).
+ */
+function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
+  const aktuell = heute.getMonth() >= 9 ? heute.getFullYear() : heute.getFullYear() - 1;
+  return Array.from({ length: anzahl }, (_, i) => `WS ${aktuell - (anzahl - 1) + i}`);
+}
+
 @Component({
   selector: 'app-home',
   standalone: true,
@@ -158,15 +167,9 @@ export class HomeComponent {
   // Formularfelder für die Registrierung:
   protected email = '';
   protected passwort = '';
-  protected startsemester = 'WS 2025';
-  protected readonly startsemesterOptions = [
-    'WS 2021',
-    'WS 2022',
-    'WS 2023',
-    'WS 2024',
-    'WS 2025',
-    'WS 2026'
-  ];
+    // Reihenfolge beachten: Der Startwert nutzt die Liste.
+  protected readonly startsemesterOptions = letzteWintersemester();
+  protected startsemester = this.startsemesterOptions.at(-1) ?? '';
 
   protected onRegister(): void {
     // Es soll aktuell noch nichts passieren beim Klick auf "Konto erstellen"

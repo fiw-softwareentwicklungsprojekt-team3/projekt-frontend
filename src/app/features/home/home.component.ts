@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -47,29 +48,42 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
             </mat-card-header>
 
             <mat-card-content class="card-body">
-              <form class="register-form" #f="ngForm" (submit)="$event.preventDefault()">                <!-- E-Mail -->
+              <form class="register-form" #f="ngForm" (submit)="$event.preventDefault()">
+                <!-- E-Mail -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>HTW E-Mail-Adresse</mat-label>
-                  <input matInput type="email" [(ngModel)]="email" name="email" required email placeholder="name@student.htw-berlin.de" />                  <mat-icon matSuffix>email</mat-icon>
+                  <input matInput type="email" [(ngModel)]="email" name="email" required email placeholder="name@student.htw-berlin.de" />
+                  <mat-icon matSuffix>email</mat-icon>
                 </mat-form-field>
+                @if (feldFehler()['email']) {
+                  <div class="fehler">{{ feldFehler()['email'] }}</div>
+                }
 
                 <!-- Passwort -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>Passwort wählen</mat-label>
-                  <input matInput type="password" [(ngModel)]="passwort" name="passwort" required minlength="8" placeholder="Mindestens 8 Zeichen" />                  <mat-icon matSuffix>lock</mat-icon>
+                  <input matInput type="password" [(ngModel)]="passwort" name="passwort" required minlength="8" placeholder="Mindestens 8 Zeichen" />
+                  <mat-icon matSuffix>lock</mat-icon>
                 </mat-form-field>
+                @if (feldFehler()['password']) {
+                  <div class="fehler">{{ feldFehler()['password'] }}</div>
+                }
 
                 <!-- Startsemester -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>Startsemester</mat-label>
-                  <mat-select [(ngModel)]="startsemester" name="startsemester" required>                    @for (semester of startsemesterOptions; track semester) {
+                  <mat-select [(ngModel)]="startsemester" name="startsemester" required>
+                    @for (semester of startsemesterOptions; track semester) {
                       <mat-option [value]="semester">{{ semester }}</mat-option>
                     }
                   </mat-select>
                   <mat-icon matSuffix>event</mat-icon>
                 </mat-form-field>
+                @if (feldFehler()['startsemester']) {
+                  <div class="fehler">{{ feldFehler()['startsemester'] }}</div>
+                }
 
-                               <!-- Registrieren-Button -->
+                <!-- Registrieren-Button -->
                 <button mat-flat-button class="full-width register-btn" type="button"
                         [disabled]="f.invalid || laedt()" (click)="onRegister(f)">
                   @if (laedt()) {
@@ -79,6 +93,14 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
                   }
                   Konto erstellen
                 </button>
+                @if (allgemeinerFehler()) {
+                  <div class="fehler">{{ allgemeinerFehler() }}</div>
+                }
+                @if (erfolg()) {
+                  <div class="erfolg">
+                    Konto erstellt. Bitte melde dich oben rechts im Menü über Login an.
+                  </div>
+                }
               </form>
             </mat-card-content>
 
@@ -163,6 +185,18 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
       color: var(--status-offen);
       line-height: 1.4;
     }
+
+    .fehler {
+      color: var(--status-gesperrt);
+      font-size: 0.85rem;
+      margin: -0.5rem 0 0.75rem;
+    }
+
+    .erfolg {
+      color: var(--htw-green-dark);
+      font-size: 0.9rem;
+      margin-top: 0.75rem;
+    }
   `]
 })
 export class HomeComponent {
@@ -171,7 +205,7 @@ export class HomeComponent {
   // Formularfelder für die Registrierung:
   protected email = '';
   protected passwort = '';
-   // Reihenfolge beachten: Der Startwert nutzt die Liste.
+  // Reihenfolge beachten: Der Startwert nutzt die Liste.
   protected readonly startsemesterOptions = letzteWintersemester();
   protected startsemester = this.startsemesterOptions.at(-1) ?? '';
 

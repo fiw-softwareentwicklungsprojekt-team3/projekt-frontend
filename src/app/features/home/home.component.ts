@@ -259,9 +259,13 @@ export class HomeComponent {
 
     if (Object.keys(neu).length > 0) {
       this.feldFehler.set(neu);
-    } else {
+    } else if (fehler.status === 0) {
+      // Status 0: keine Antwort vom Server (Netzwerk- oder Verbindungsfehler).
       this.allgemeinerFehler.set(
         'Der Server ist gerade nicht erreichbar. Bitte später erneut versuchen.');
+    } else {
+      // Server hat geantwortet, die Antwort lässt sich aber keinem Feld zuordnen (z. B. 500).
+      this.allgemeinerFehler.set('Etwas ist schiefgelaufen. Bitte später erneut versuchen.');
     }
   }
 }

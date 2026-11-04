@@ -1,12 +1,24 @@
-import { Component, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, inject, signal } from '@angular/core';
+import { FormsModule, NgForm } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { AuthService } from '../../core/services/auth.service';
+import { ApiFehler, RegistrationService } from '../../core/services/registration.service';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+
+/**
+ * Liefert die letzten Wintersemester, z. B. ["WS 2021", ..., "WS 2026"].
+ * Das Wintersemester beginnt im Oktober (getMonth() = 9).
+ */
+function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
+  const aktuell = heute.getMonth() >= 9 ? heute.getFullYear() : heute.getFullYear() - 1;
+  return Array.from({ length: anzahl }, (_, i) => `WS ${aktuell - (anzahl - 1) + i}`);
+}
 
 @Component({
   selector: 'app-home',
@@ -18,7 +30,8 @@ import { AuthService } from '../../core/services/auth.service';
     MatIconModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule
+    MatSelectModule,
+    MatProgressSpinnerModule
   ],
   template: `
     @if (authService.aktuelleRolle() === null) {
@@ -35,37 +48,59 @@ import { AuthService } from '../../core/services/auth.service';
             </mat-card-header>
 
             <mat-card-content class="card-body">
-              <form class="register-form" (submit)="$event.preventDefault()">
+              <form class="register-form" #f="ngForm" (submit)="$event.preventDefault()">
                 <!-- E-Mail -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>HTW E-Mail-Adresse</mat-label>
-                  <input matInput type="email" [(ngModel)]="email" name="email" placeholder="name@student.htw-berlin.de" />
+                  <input matInput type="email" [(ngModel)]="email" name="email" required email placeholder="name@student.htw-berlin.de" />
                   <mat-icon matSuffix>email</mat-icon>
                 </mat-form-field>
+                @if (feldFehler()['email']) {
+                  <div class="fehler">{{ feldFehler()['email'] }}</div>
+                }
 
                 <!-- Passwort -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>Passwort wählen</mat-label>
-                  <input matInput type="password" [(ngModel)]="passwort" name="passwort" placeholder="Mindestens 8 Zeichen" />
+                  <input matInput type="password" [(ngModel)]="passwort" name="passwort" required minlength="8" placeholder="Mindestens 8 Zeichen" />
                   <mat-icon matSuffix>lock</mat-icon>
                 </mat-form-field>
+                @if (feldFehler()['password']) {
+                  <div class="fehler">{{ feldFehler()['password'] }}</div>
+                }
 
                 <!-- Startsemester -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>Startsemester</mat-label>
-                  <mat-select [(ngModel)]="startsemester" name="startsemester">
+                  <mat-select [(ngModel)]="startsemester" name="startsemester" required>
                     @for (semester of startsemesterOptions; track semester) {
                       <mat-option [value]="semester">{{ semester }}</mat-option>
                     }
                   </mat-select>
                   <mat-icon matSuffix>event</mat-icon>
                 </mat-form-field>
+                @if (feldFehler()['startsemester']) {
+                  <div class="fehler">{{ feldFehler()['startsemester'] }}</div>
+                }
 
-                <!-- Registrieren-Button (macht aktuell noch nichts) -->
-                <button mat-flat-button class="full-width register-btn" type="button" (click)="onRegister()">
-                  <mat-icon>how_to_reg</mat-icon>
+                <!-- Registrieren-Button -->
+                <button mat-flat-button class="full-width register-btn" type="button"
+                        [disabled]="f.invalid || laedt()" (click)="onRegister(f)">
+                  @if (laedt()) {
+                    <mat-spinner diameter="18" />
+                  } @else {
+                    <mat-icon>how_to_reg</mat-icon>
+                  }
                   Konto erstellen
                 </button>
+                @if (allgemeinerFehler()) {
+                  <div class="fehler">{{ allgemeinerFehler() }}</div>
+                }
+                @if (erfolg()) {
+                  <div class="erfolg">
+                    Konto erstellt. Bitte melde dich oben rechts im Menü über Login an.
+                  </div>
+                }
               </form>
             </mat-card-content>
 
@@ -150,6 +185,18 @@ import { AuthService } from '../../core/services/auth.service';
       color: var(--status-offen);
       line-height: 1.4;
     }
+
+    .fehler {
+      color: var(--status-gesperrt);
+      font-size: 0.85rem;
+      margin: -0.5rem 0 0.75rem;
+    }
+
+    .erfolg {
+      color: var(--htw-green-dark);
+      font-size: 0.9rem;
+      margin-top: 0.75rem;
+    }
   `]
 })
 export class HomeComponent {
@@ -158,17 +205,67 @@ export class HomeComponent {
   // Formularfelder für die Registrierung:
   protected email = '';
   protected passwort = '';
-  protected startsemester = 'WS 2025';
-  protected readonly startsemesterOptions = [
-    'WS 2021',
-    'WS 2022',
-    'WS 2023',
-    'WS 2024',
-    'WS 2025',
-    'WS 2026'
-  ];
+  // Reihenfolge beachten: Der Startwert nutzt die Liste.
+  protected readonly startsemesterOptions = letzteWintersemester();
+  protected startsemester = this.startsemesterOptions.at(-1) ?? '';
 
-  protected onRegister(): void {
-    // Es soll aktuell noch nichts passieren beim Klick auf "Konto erstellen"
+  private readonly registrationService = inject(RegistrationService);
+
+  // Signale, da die Anwendung ohne zone.js läuft.
+  protected readonly laedt = signal(false);
+  protected readonly erfolg = signal(false);
+  protected readonly feldFehler = signal<Record<string, string>>({});
+  protected readonly allgemeinerFehler = signal('');
+
+  /** Sendet die Registrierung und zeigt Erfolg oder Fehler an. */
+  protected onRegister(form: NgForm): void {
+    this.laedt.set(true);
+    this.erfolg.set(false);
+    this.feldFehler.set({});
+    this.allgemeinerFehler.set('');
+
+    this.registrationService
+      .register({ email: this.email, password: this.passwort, startsemester: this.startsemester })
+      .subscribe({
+        next: () => {
+          this.laedt.set(false);
+          this.erfolg.set(true);
+          this.email = '';
+          this.passwort = '';
+          form.resetForm({ startsemester: this.startsemester });
+        },
+        error: (fehler: HttpErrorResponse) => {
+          this.laedt.set(false);
+          this.fehlerZuordnen(fehler);
+        }
+      });
+  }
+
+  /**
+   * Ordnet eine Fehlerantwort dem passenden Feld zu.
+   * Bei 409 fehlt das Feld in der Antwort; betroffen ist dann die E-Mail-Adresse.
+   */
+  private fehlerZuordnen(fehler: HttpErrorResponse): void {
+    const body = fehler.error as ApiFehler | null;
+    const neu: Record<string, string> = {};
+
+    if (body?.errors?.length) {
+      body.errors.forEach((e) => (neu[e.field] = e.message));
+    } else if (body?.field && body.message) {
+      neu[body.field] = body.message;
+    } else if (fehler.status === 409) {
+      neu['email'] = body?.message ?? 'E-Mail ist bereits vergeben';
+    }
+
+    if (Object.keys(neu).length > 0) {
+      this.feldFehler.set(neu);
+    } else if (fehler.status === 0) {
+      // Status 0: keine Antwort vom Server (Netzwerk- oder Verbindungsfehler).
+      this.allgemeinerFehler.set(
+        'Der Server ist gerade nicht erreichbar. Bitte später erneut versuchen.');
+    } else {
+      // Server hat geantwortet, die Antwort lässt sich aber keinem Feld zuordnen (z. B. 500).
+      this.allgemeinerFehler.set('Etwas ist schiefgelaufen. Bitte später erneut versuchen.');
+    }
   }
 }

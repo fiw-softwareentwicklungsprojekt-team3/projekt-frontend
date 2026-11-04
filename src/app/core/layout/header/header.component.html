@@ -33,28 +33,23 @@
   <!-- 3. Benutzerbereich (Login oder Angemeldet + Logout) -->
   <div class="user-section">
     @if (authService.aktuelleRolle() === null) {
+      @if (authService.sitzungAbgelaufen()) {
+        <span class="session-hinweis">Sitzung abgelaufen. Bitte erneut anmelden.</span>
+      }
+
       <!-- Wenn NICHT angemeldet: Login-Button -->
       <button mat-button [matMenuTriggerFor]="loginMenu" #loginTrigger="matMenuTrigger" class="login-trigger-btn">
         <mat-icon>login</mat-icon>
         <span>Login</span>
       </button>
 
-      <!-- Ausklappbares Login-Menü mit Rollen-Auswahl und Feldern -->
+      <!-- Ausklappbares Login-Menü mit E-Mail und Passwort -->
       <mat-menu #loginMenu="matMenu" xPosition="before" class="login-menu-panel">
         <div class="login-dropdown-container" (click)="$event.stopPropagation()">
           <div class="login-header">
             <mat-icon class="login-icon">account_circle</mat-icon>
             <span class="login-title">Anmeldung</span>
           </div>
-
-          <!-- Option: Studierende:r oder Lehrende:r -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Rolle</mat-label>
-            <mat-select [(ngModel)]="selectedRolle">
-              <mat-option value="STUDIERENDE">Studierende:r</mat-option>
-              <mat-option value="PROFESSOR_IN">Lehrende:r</mat-option>
-            </mat-select>
-          </mat-form-field>
 
           <!-- Eingabefeld: E-Mail -->
           <mat-form-field appearance="outline" class="full-width">
@@ -67,6 +62,10 @@
             <mat-label>Passwort</mat-label>
             <input matInput type="password" [(ngModel)]="passwort" placeholder="Passwort" (keyup.enter)="doLogin(loginTrigger)" />
           </mat-form-field>
+
+          @if (loginFehler()) {
+            <p class="login-fehler" role="alert">{{ loginFehler() }}</p>
+          }
 
           <!-- Anmelde-Button -->
           <button mat-flat-button class="full-width submit-btn" (click)="doLogin(loginTrigger)">
@@ -82,10 +81,11 @@
         </div>
       </mat-menu>
     } @else {
-      <!-- Wenn ANGEMELDET: Rolle-Badge und sichtbarer Logout-Button -->
+      <!-- Wenn ANGEMELDET: Rolle, E-Mail und sichtbarer Logout-Button -->
       <div class="logged-in-badge">
         <mat-icon>{{ authService.aktuelleRolle() === 'STUDIERENDE' ? 'school' : 'psychology' }}</mat-icon>
         <span>{{ rolleLabel() }}</span>
+        <span class="user-email">{{ authService.email() }}</span>
       </div>
 
       <button mat-button (click)="logout()" class="logout-btn" title="Vom System abmelden">
@@ -95,4 +95,3 @@
     }
   </div>
 </mat-toolbar>
-

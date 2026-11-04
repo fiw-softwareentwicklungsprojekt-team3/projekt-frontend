@@ -204,3 +204,13 @@
   border-color: var(--mat-sys-on-primary) !important;
 }
 
+.login-fehler {
+  margin: 0 0 0.75rem;
+  color: var(--status-gesperrt);
+  font-size: 0.875rem;
+}
+
+.session-hinweis,
+.user-email {
+  font-size: 0.85rem;
+}

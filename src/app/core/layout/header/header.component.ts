@@ -1,4 +1,5 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -7,7 +8,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { AuthService } from '../../services/auth.service';
 import { HealthService } from '../../services/health.service';
 
@@ -21,8 +21,7 @@ import { HealthService } from '../../services/health.service';
     MatIconModule,
     MatMenuModule,
     MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule
+    MatInputModule
   ],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss'
@@ -34,10 +33,10 @@ export class HeaderComponent implements OnInit {
 
   protected healthStatus: 'online' | 'offline' | 'unknown' = 'unknown';
 
-  // Formular-Felder für das Login-Dropdown:
-  protected selectedRolle: 'STUDIERENDE' | 'PROFESSOR_IN' = 'STUDIERENDE';
-  protected email = '';
-  protected passwort = '';
+  // Formular-Felder für das Login-Dropdown (Signals, damit die Anzeige zoneless aktualisiert wird):
+  protected readonly email = signal('');
+  protected readonly passwort = signal('');
+  protected readonly loginFehler = signal('');
 
   ngOnInit(): void {
     this.healthService.getHealth().subscribe({
@@ -58,10 +57,29 @@ export class HeaderComponent implements OnInit {
   }
 
   protected doLogin(trigger: MatMenuTrigger): void {
-    this.authService.login(this.selectedRolle, this.email);
-    trigger.closeMenu();
-    this.email = '';
-    this.passwort = '';
+    this.loginFehler.set('');
+    this.authService.login(this.email(), this.passwort()).subscribe({
+      next: () => {
+        trigger.closeMenu();
+        this.email.set('');
+        this.passwort.set('');
+      },
+      error: (fehler: HttpErrorResponse) => {
+        this.passwort.set('');
+        this.loginFehler.set(this.loginFehlerText(fehler));
+      }
+    });
+  }
+
+  private loginFehlerText(fehler: HttpErrorResponse): string {
+    // 400 (leere oder ungültige Eingabe) und 401 (falsche Daten) bekommen dieselbe Meldung.
+    if (fehler.status === 400 || fehler.status === 401) {
+      return 'E-Mail oder Passwort falsch';
+    }
+    if (fehler.status === 0) {
+      return 'Der Server ist gerade nicht erreichbar. Bitte später erneut versuchen.';
+    }
+    return 'Anmeldung nicht möglich. Bitte später erneut versuchen.';
   }
 
   protected logout(): void {

@@ -63,7 +63,7 @@ describe('AuthService', () => {
 
     service.sitzungPruefen();
 
-    httpMock.expectOne('/api/auth/me').flush({ email: 'a@b.de', rolle: 'STUDIERENDE' });
+    httpMock.expectOne('/api/auth/me').flush({ email: 'a@b.de', role: 'STUDIERENDE' });
     expect(service.aktuelleRolle()).toBe('STUDIERENDE');
     expect(service.email()).toBe('a@b.de');
   });

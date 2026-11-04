@@ -16,7 +16,7 @@ export interface LoginResponse {
 /** Antwort von GET /api/auth/me. Feldnamen mit dem Backend abstimmen. */
 export interface MeResponse {
   email: string;
-  rolle: 'STUDIERENDE' | 'PROFESSOR_IN';
+  role: 'STUDIERENDE' | 'PROFESSOR_IN';
 }
 
 /** Schlüssel, unter dem das Token im localStorage liegt. */
@@ -85,7 +85,7 @@ export class AuthService {
     }
     this.http.get<MeResponse>('/api/auth/me').subscribe({
       next: (antwort) => {
-        this.aktuelleRolle.set(antwort.rolle);
+        this.aktuelleRolle.set(antwort.role);
         this.email.set(antwort.email);
       },
       // Andere Fehler (z. B. Server nicht erreichbar): die Person bleibt abgemeldet.

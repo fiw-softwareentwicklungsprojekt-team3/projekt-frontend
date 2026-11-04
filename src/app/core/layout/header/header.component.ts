@@ -10,6 +10,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { AuthService } from '../../services/auth.service';
 import { HealthService } from '../../services/health.service';
+import { ApiFehler } from '../../services/registration.service';
 
 /**
  * Kopfzeile der App: Navigation nach Rolle, Backend-Status sowie Login-Menü und Logout.
@@ -41,6 +42,7 @@ export class HeaderComponent implements OnInit {
   protected readonly passwort = signal('');
   /** Fehlermeldung des letzten Login-Versuchs, leer wenn kein Fehler vorliegt. */
   protected readonly loginFehler = signal('');
+  protected readonly loginFeldFehler = signal<Record<string, string>>({});
 
   /** Fragt beim Start, ob das Backend erreichbar ist. */
   ngOnInit(): void {
@@ -68,36 +70,46 @@ export class HeaderComponent implements OnInit {
    */
   protected doLogin(trigger: MatMenuTrigger): void {
     this.loginFehler.set('');
+    this.loginFeldFehler.set({});
     this.authService.login(this.email(), this.passwort()).subscribe({
       next: () => {
         trigger.closeMenu();
         this.email.set('');
         this.passwort.set('');
+        void this.router.navigate(['/']);
       },
       error: (fehler: HttpErrorResponse) => {
-        // Das Passwort wird nach einem Fehler immer geleert.
         this.passwort.set('');
-        this.loginFehler.set(this.loginFehlerText(fehler));
+        this.loginFehlerZuordnen(fehler);
       }
     });
   }
 
-  /** Wählt die Fehlermeldung passend zum Status der Antwort. */
-  private loginFehlerText(fehler: HttpErrorResponse): string {
-    // 400 (leere oder ungültige Eingabe) und 401 (falsche Daten) bekommen dieselbe Meldung.
-    if (fehler.status === 400 || fehler.status === 401) {
-      return 'E-Mail oder Passwort falsch';
+  private loginFehlerZuordnen(fehler: HttpErrorResponse): void {
+    const body = fehler.error as ApiFehler | null;
+    const neu: Record<string, string> = {};
+
+    if (fehler.status === 400 && body?.errors?.length) {
+      body.errors.forEach((e) => (neu[e.field] = e.message));
+      this.loginFeldFehler.set(neu);
+      return;
     }
-    // Status 0: keine Antwort vom Server.
+
+    if (fehler.status === 401 || fehler.status === 400) {
+      this.loginFehler.set(body?.message || 'E-Mail oder Passwort falsch');
+      return;
+    }
+
     if (fehler.status === 0) {
-      return 'Der Server ist gerade nicht erreichbar. Bitte später erneut versuchen.';
+      this.loginFehler.set('Der Server ist gerade nicht erreichbar. Bitte später erneut versuchen.');
+      return;
     }
-    return 'Anmeldung nicht möglich. Bitte später erneut versuchen.';
+
+    this.loginFehler.set(body?.message || 'Anmeldung nicht möglich. Bitte später erneut versuchen.');
   }
 
-  /** Meldet ab und öffnet die Startseite. */
   protected logout(): void {
     this.authService.logout();
-    this.router.navigate(['/']);
+    void this.router.navigate(['/login']);
   }
 }

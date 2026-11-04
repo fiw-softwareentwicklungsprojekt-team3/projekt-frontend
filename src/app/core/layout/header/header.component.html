@@ -33,7 +33,6 @@
   <!-- 3. Benutzerbereich (Login oder Angemeldet + Logout) -->
   <div class="user-section">
     @if (authService.aktuelleRolle() === null) {
-      <!-- Hinweis, wenn eine Sitzung durch eine 401-Antwort beendet wurde -->
       @if (authService.sitzungAbgelaufen()) {
         <span class="session-hinweis">Sitzung abgelaufen. Bitte erneut anmelden.</span>
       }
@@ -52,27 +51,34 @@
             <span class="login-title">Anmeldung</span>
           </div>
 
-          <!-- Eingabefeld: E-Mail -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>E-Mail</mat-label>
-            <input matInput type="email" [(ngModel)]="email" placeholder="name@student.htw-berlin.de" />
-          </mat-form-field>
+          <form #loginForm="ngForm" (submit)="$event.preventDefault()">
+            <!-- Eingabefeld: E-Mail -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>E-Mail</mat-label>
+              <input matInput type="email" name="email" [(ngModel)]="email" required email placeholder="name@student.htw-berlin.de" />
+            </mat-form-field>
+            @if (loginFeldFehler()['email']) {
+              <p class="login-fehler" role="alert">{{ loginFeldFehler()['email'] }}</p>
+            }
 
-          <!-- Eingabefeld: Passwort -->
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Passwort</mat-label>
-            <input matInput type="password" [(ngModel)]="passwort" placeholder="Passwort" (keyup.enter)="doLogin(loginTrigger)" />
-          </mat-form-field>
+            <!-- Eingabefeld: Passwort -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Passwort</mat-label>
+              <input matInput type="password" name="password" [(ngModel)]="passwort" required minlength="8" placeholder="Passwort" (keyup.enter)="!loginForm.invalid && doLogin(loginTrigger)" />
+            </mat-form-field>
+            @if (loginFeldFehler()['password']) {
+              <p class="login-fehler" role="alert">{{ loginFeldFehler()['password'] }}</p>
+            }
 
-          <!-- Fehlermeldung des Logins (falsche Daten, Server nicht erreichbar) -->
-          @if (loginFehler()) {
-            <p class="login-fehler" role="alert">{{ loginFehler() }}</p>
-          }
+            @if (loginFehler()) {
+              <p class="login-fehler" role="alert">{{ loginFehler() }}</p>
+            }
 
-          <!-- Anmelde-Button -->
-          <button mat-flat-button class="full-width submit-btn" (click)="doLogin(loginTrigger)">
-            <mat-icon>login</mat-icon> Anmelden
-          </button>
+            <!-- Anmelde-Button -->
+            <button mat-flat-button type="button" class="full-width submit-btn" [disabled]="loginForm.invalid" (click)="doLogin(loginTrigger)">
+              <mat-icon>login</mat-icon> Anmelden
+            </button>
+          </form>
 
           <!-- Passwort vergessen -->
           <div class="forgot-password-container">
@@ -87,7 +93,6 @@
       <div class="logged-in-badge">
         <mat-icon>{{ authService.aktuelleRolle() === 'STUDIERENDE' ? 'school' : 'psychology' }}</mat-icon>
         <span>{{ rolleLabel() }}</span>
-        <!-- E-Mail der angemeldeten Person -->
         <span class="user-email">{{ authService.email() }}</span>
       </div>
 

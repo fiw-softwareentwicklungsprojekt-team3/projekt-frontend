@@ -3,8 +3,10 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 
+/** Rolle der angemeldeten Person. null bedeutet: niemand ist angemeldet. */
 export type Rolle = 'STUDIERENDE' | 'PROFESSOR_IN' | null;
 
+/** Antwort von POST /api/auth/login. */
 export interface LoginResponse {
   token: string;
   expiresIn: number;
@@ -17,14 +19,21 @@ export interface MeResponse {
   rolle: 'STUDIERENDE' | 'PROFESSOR_IN';
 }
 
+/** Schlüssel, unter dem das Token im localStorage liegt. */
 export const TOKEN_KEY = 'studyplanner.token';
 
+/**
+ * Verwaltet die Anmeldung: Login, Logout und den Zustand der angemeldeten Person.
+ * Der Zustand liegt in Signals, damit sich die Anzeige nach HTTP-Antworten aktualisiert.
+ */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
 
+  /** Rolle der angemeldeten Person oder null, wenn niemand angemeldet ist. */
   readonly aktuelleRolle = signal<Rolle>(null);
+  /** E-Mail-Adresse der angemeldeten Person. */
   readonly email = signal<string>('');
   /** true, solange der Hinweis "Sitzung abgelaufen" angezeigt werden soll. */
   readonly sitzungAbgelaufen = signal<boolean>(false);
@@ -32,6 +41,7 @@ export class AuthService {
   /**
    * Meldet die Person am Backend an und merkt sich Token, Rolle und E-Mail.
    * Das Backend liefert die E-Mail nicht mit, sie stammt aus dem Formular.
+   * Das Observable liefert auch Fehler (z. B. 401), damit der Aufrufer sie anzeigen kann.
    */
   login(email: string, password: string): Observable<LoginResponse> {
     return this.http.post<LoginResponse>('/api/auth/login', { email, password }).pipe(
@@ -69,6 +79,7 @@ export class AuthService {
    * Bei 401 meldet der Interceptor ab und löscht das Token.
    */
   sitzungPruefen(): void {
+    // Ohne Token ist niemand angemeldet, eine Anfrage wäre überflüssig.
     if (this.getToken() === null) {
       return;
     }

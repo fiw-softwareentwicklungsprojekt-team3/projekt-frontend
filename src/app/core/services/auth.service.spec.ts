@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AuthService, TOKEN_KEY } from './auth.service';
 
+/** Prüft Login, Logout und die Wiederherstellung der Anmeldung beim Start. */
 describe('AuthService', () => {
   let service: AuthService;
   let httpMock: HttpTestingController;

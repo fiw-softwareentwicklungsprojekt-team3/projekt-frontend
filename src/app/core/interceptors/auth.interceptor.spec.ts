@@ -5,6 +5,7 @@ import { provideRouter } from '@angular/router';
 import { AuthService, TOKEN_KEY } from '../services/auth.service';
 import { authInterceptor } from './auth.interceptor';
 
+/** Prüft, dass der Interceptor das Token anhängt und nur bei 401 abmeldet. */
 describe('authInterceptor', () => {
   let http: HttpClient;
   let httpMock: HttpTestingController;

@@ -33,6 +33,7 @@
   <!-- 3. Benutzerbereich (Login oder Angemeldet + Logout) -->
   <div class="user-section">
     @if (authService.aktuelleRolle() === null) {
+      <!-- Hinweis, wenn eine Sitzung durch eine 401-Antwort beendet wurde -->
       @if (authService.sitzungAbgelaufen()) {
         <span class="session-hinweis">Sitzung abgelaufen. Bitte erneut anmelden.</span>
       }
@@ -63,6 +64,7 @@
             <input matInput type="password" [(ngModel)]="passwort" placeholder="Passwort" (keyup.enter)="doLogin(loginTrigger)" />
           </mat-form-field>
 
+          <!-- Fehlermeldung des Logins (falsche Daten, Server nicht erreichbar) -->
           @if (loginFehler()) {
             <p class="login-fehler" role="alert">{{ loginFehler() }}</p>
           }
@@ -85,6 +87,7 @@
       <div class="logged-in-badge">
         <mat-icon>{{ authService.aktuelleRolle() === 'STUDIERENDE' ? 'school' : 'psychology' }}</mat-icon>
         <span>{{ rolleLabel() }}</span>
+        <!-- E-Mail der angemeldeten Person -->
         <span class="user-email">{{ authService.email() }}</span>
       </div>
 

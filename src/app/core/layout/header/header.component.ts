@@ -1,4 +1,5 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -7,10 +8,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { AuthService } from '../../services/auth.service';
 import { HealthService } from '../../services/health.service';
 
+/**
+ * Kopfzeile der App: Navigation nach Rolle, Backend-Status sowie Login-Menü und Logout.
+ */
 @Component({
   selector: 'app-header',
   imports: [
@@ -21,8 +24,7 @@ import { HealthService } from '../../services/health.service';
     MatIconModule,
     MatMenuModule,
     MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule
+    MatInputModule
   ],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss'
@@ -34,11 +36,13 @@ export class HeaderComponent implements OnInit {
 
   protected healthStatus: 'online' | 'offline' | 'unknown' = 'unknown';
 
-  // Formular-Felder für das Login-Dropdown:
-  protected selectedRolle: 'STUDIERENDE' | 'PROFESSOR_IN' = 'STUDIERENDE';
-  protected email = '';
-  protected passwort = '';
+  // Formular-Felder für das Login-Dropdown (Signals, damit die Anzeige zoneless aktualisiert wird):
+  protected readonly email = signal('');
+  protected readonly passwort = signal('');
+  /** Fehlermeldung des letzten Login-Versuchs, leer wenn kein Fehler vorliegt. */
+  protected readonly loginFehler = signal('');
 
+  /** Fragt beim Start, ob das Backend erreichbar ist. */
   ngOnInit(): void {
     this.healthService.getHealth().subscribe({
       next: () => {
@@ -50,6 +54,7 @@ export class HeaderComponent implements OnInit {
     });
   }
 
+  /** Liefert den angezeigten Namen der Rolle. */
   protected rolleLabel(): string {
     const rolle = this.authService.aktuelleRolle();
     if (rolle === 'STUDIERENDE') return 'Studierende:r';
@@ -57,13 +62,40 @@ export class HeaderComponent implements OnInit {
     return '';
   }
 
+  /**
+   * Meldet die Person mit den eingegebenen Daten an.
+   * Bei Erfolg schließt das Menü, bei einem Fehler erscheint eine Meldung.
+   */
   protected doLogin(trigger: MatMenuTrigger): void {
-    this.authService.login(this.selectedRolle, this.email);
-    trigger.closeMenu();
-    this.email = '';
-    this.passwort = '';
+    this.loginFehler.set('');
+    this.authService.login(this.email(), this.passwort()).subscribe({
+      next: () => {
+        trigger.closeMenu();
+        this.email.set('');
+        this.passwort.set('');
+      },
+      error: (fehler: HttpErrorResponse) => {
+        // Das Passwort wird nach einem Fehler immer geleert.
+        this.passwort.set('');
+        this.loginFehler.set(this.loginFehlerText(fehler));
+      }
+    });
   }
 
+  /** Wählt die Fehlermeldung passend zum Status der Antwort. */
+  private loginFehlerText(fehler: HttpErrorResponse): string {
+    // 400 (leere oder ungültige Eingabe) und 401 (falsche Daten) bekommen dieselbe Meldung.
+    if (fehler.status === 400 || fehler.status === 401) {
+      return 'E-Mail oder Passwort falsch';
+    }
+    // Status 0: keine Antwort vom Server.
+    if (fehler.status === 0) {
+      return 'Der Server ist gerade nicht erreichbar. Bitte später erneut versuchen.';
+    }
+    return 'Anmeldung nicht möglich. Bitte später erneut versuchen.';
+  }
+
+  /** Meldet ab und öffnet die Startseite. */
   protected logout(): void {
     this.authService.logout();
     this.router.navigate(['/']);

@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgForm } from '@angular/forms';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -44,6 +44,18 @@ export class HeaderComponent implements OnInit {
   protected readonly loginFehler = signal('');
   protected readonly loginFeldFehler = signal<Record<string, string>>({});
 
+  /** Setzt alte Fehlermeldungen zurück, sobald eine Eingabe geändert wird. */
+  protected eingabeGeaendert(feld: string): void {
+    this.loginFehler.set('');
+    if (this.loginFeldFehler()[feld]) {
+      this.loginFeldFehler.update((aktuell) => {
+        const kopie = { ...aktuell };
+        delete kopie[feld];
+        return kopie;
+      });
+    }
+  }
+
   /** Fragt beim Start, ob das Backend erreichbar ist. */
   ngOnInit(): void {
     this.healthService.getHealth().subscribe({
@@ -68,7 +80,7 @@ export class HeaderComponent implements OnInit {
    * Meldet die Person mit den eingegebenen Daten an.
    * Bei Erfolg schließt das Menü, bei einem Fehler erscheint eine Meldung.
    */
-  protected doLogin(trigger: MatMenuTrigger): void {
+  protected doLogin(trigger: MatMenuTrigger, form?: NgForm): void {
     this.loginFehler.set('');
     this.loginFeldFehler.set({});
     this.authService.login(this.email(), this.passwort()).subscribe({
@@ -76,10 +88,12 @@ export class HeaderComponent implements OnInit {
         trigger.closeMenu();
         this.email.set('');
         this.passwort.set('');
+        form?.resetForm({ email: '', password: '' });
         void this.router.navigate(['/']);
       },
       error: (fehler: HttpErrorResponse) => {
         this.passwort.set('');
+        form?.controls['password']?.reset('');
         this.loginFehlerZuordnen(fehler);
       }
     });

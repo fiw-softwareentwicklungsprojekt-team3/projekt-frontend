@@ -54,8 +54,13 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
                 <!-- E-Mail -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>HTW E-Mail-Adresse</mat-label>
-                  <input matInput type="email" [(ngModel)]="email" name="email" required email placeholder="name@student.htw-berlin.de" />
+                  <input matInput type="email" [(ngModel)]="email" (ngModelChange)="eingabeGeaendert('email')" #emailModel="ngModel" name="email" required email placeholder="name@student.htw-berlin.de" />
                   <mat-icon matSuffix>email</mat-icon>
+                  @if (emailModel.hasError('required')) {
+                    <mat-error>E-Mail-Adresse darf nicht leer sein.</mat-error>
+                  } @else if (emailModel.hasError('email')) {
+                    <mat-error>Bitte eine gültige E-Mail-Adresse eingeben.</mat-error>
+                  }
                 </mat-form-field>
                 @if (feldFehler()['email']) {
                   <div class="fehler">{{ feldFehler()['email'] }}</div>
@@ -64,8 +69,13 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
                 <!-- Passwort -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>Passwort wählen</mat-label>
-                  <input matInput type="password" [(ngModel)]="passwort" name="passwort" required minlength="8" placeholder="Mindestens 8 Zeichen" />
+                  <input matInput type="password" [(ngModel)]="passwort" (ngModelChange)="eingabeGeaendert('password')" #passwortModel="ngModel" name="passwort" required minlength="8" placeholder="Mindestens 8 Zeichen" />
                   <mat-icon matSuffix>lock</mat-icon>
+                  @if (passwortModel.hasError('required')) {
+                    <mat-error>Passwort darf nicht leer sein.</mat-error>
+                  } @else if (passwortModel.hasError('minlength')) {
+                    <mat-error>Das Passwort muss mindestens 8 Zeichen haben.</mat-error>
+                  }
                 </mat-form-field>
                 @if (feldFehler()['password']) {
                   <div class="fehler">{{ feldFehler()['password'] }}</div>
@@ -74,7 +84,7 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
                 <!-- Startsemester -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>Startsemester</mat-label>
-                  <mat-select [(ngModel)]="startsemester" name="startsemester" required>
+                  <mat-select [(ngModel)]="startsemester" (ngModelChange)="eingabeGeaendert('startsemester')" name="startsemester" required>
                     @for (semester of startsemesterOptions; track semester) {
                       <mat-option [value]="semester">{{ semester }}</mat-option>
                     }
@@ -227,6 +237,19 @@ export class HomeComponent {
   protected readonly erfolg = signal(false);
   protected readonly feldFehler = signal<Record<string, string>>({});
   protected readonly allgemeinerFehler = signal('');
+
+  /** Setzt alte Meldungen zurück, sobald eine Eingabe geändert wird. */
+  protected eingabeGeaendert(feld: string): void {
+    this.erfolg.set(false);
+    this.allgemeinerFehler.set('');
+    if (this.feldFehler()[feld]) {
+      this.feldFehler.update((aktuell) => {
+        const kopie = { ...aktuell };
+        delete kopie[feld];
+        return kopie;
+      });
+    }
+  }
 
   /** Sendet die Registrierung und zeigt Erfolg oder Fehler an. */
   protected onRegister(form: NgForm): void {

@@ -18,15 +18,15 @@
 
   <span class="spacer"></span>
 
-  @if (healthStatus !== 'unknown') {
+  @if (healthStatus() !== 'unknown') {
     <div
       class="backend-status"
-      [class.backend-status--online]="healthStatus === 'online'"
-      [class.backend-status--offline]="healthStatus === 'offline'"
-      [title]="healthStatus === 'online' ? 'Backend erreichbar' : 'Backend nicht erreichbar'"
+      [class.backend-status--online]="healthStatus() === 'online'"
+      [class.backend-status--offline]="healthStatus() === 'offline'"
+      [title]="healthStatus() === 'online' ? 'Backend erreichbar' : 'Backend nicht erreichbar'"
     >
       <span class="backend-status__dot"></span>
-      <span>{{ healthStatus === 'online' ? 'Backend online' : 'Backend offline' }}</span>
+      <span>{{ healthStatus() === 'online' ? 'Backend online' : 'Backend offline' }}</span>
     </div>
   }
 

@@ -34,7 +34,8 @@ export class HeaderComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly healthService = inject(HealthService);
 
-  protected healthStatus: 'online' | 'offline' | 'unknown' = 'unknown';
+  // Status der Backend-Verbindung; als Signal, damit die Anzeige ohne zone.js aktualisiert wird.
+  protected readonly healthStatus = signal<'online' | 'offline' | 'unknown'>('unknown');
 
   // Formular-Felder für das Login-Dropdown (Signals, damit die Anzeige zoneless aktualisiert wird):
   protected readonly email = signal('');
@@ -46,10 +47,10 @@ export class HeaderComponent implements OnInit {
   ngOnInit(): void {
     this.healthService.getHealth().subscribe({
       next: () => {
-        this.healthStatus = 'online';
+        this.healthStatus.set('online');
       },
       error: () => {
-        this.healthStatus = 'offline';
+        this.healthStatus.set('offline');
       }
     });
   }

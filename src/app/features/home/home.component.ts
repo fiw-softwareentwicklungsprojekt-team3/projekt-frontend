@@ -10,6 +10,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiFehler, RegistrationService } from '../../core/services/registration.service';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { ModulesComponent } from '../modules/modules.component';
 
 /**
  * Liefert die letzten Wintersemester, z. B. ["WS 2021", ..., "WS 2026"].
@@ -31,7 +32,8 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    ModulesComponent
   ],
   template: `
     @if (authService.aktuelleRolle() === null) {
@@ -52,8 +54,13 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
                 <!-- E-Mail -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>HTW E-Mail-Adresse</mat-label>
-                  <input matInput type="email" [(ngModel)]="email" name="email" required email placeholder="name@student.htw-berlin.de" />
+                  <input matInput type="email" [(ngModel)]="email" (ngModelChange)="eingabeGeaendert('email')" #emailModel="ngModel" name="email" required email placeholder="name@student.htw-berlin.de" />
                   <mat-icon matSuffix>email</mat-icon>
+                  @if (emailModel.hasError('required')) {
+                    <mat-error>E-Mail-Adresse darf nicht leer sein.</mat-error>
+                  } @else if (emailModel.hasError('email')) {
+                    <mat-error>Bitte eine gültige E-Mail-Adresse eingeben.</mat-error>
+                  }
                 </mat-form-field>
                 @if (feldFehler()['email']) {
                   <div class="fehler">{{ feldFehler()['email'] }}</div>
@@ -62,8 +69,13 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
                 <!-- Passwort -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>Passwort wählen</mat-label>
-                  <input matInput type="password" [(ngModel)]="passwort" name="passwort" required minlength="8" placeholder="Mindestens 8 Zeichen" />
+                  <input matInput type="password" [(ngModel)]="passwort" (ngModelChange)="eingabeGeaendert('password')" #passwortModel="ngModel" name="passwort" required minlength="8" placeholder="Mindestens 8 Zeichen" />
                   <mat-icon matSuffix>lock</mat-icon>
+                  @if (passwortModel.hasError('required')) {
+                    <mat-error>Passwort darf nicht leer sein.</mat-error>
+                  } @else if (passwortModel.hasError('minlength')) {
+                    <mat-error>Das Passwort muss mindestens 8 Zeichen haben.</mat-error>
+                  }
                 </mat-form-field>
                 @if (feldFehler()['password']) {
                   <div class="fehler">{{ feldFehler()['password'] }}</div>
@@ -72,7 +84,7 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
                 <!-- Startsemester -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>Startsemester</mat-label>
-                  <mat-select [(ngModel)]="startsemester" name="startsemester" required>
+                  <mat-select [(ngModel)]="startsemester" (ngModelChange)="eingabeGeaendert('startsemester')" name="startsemester" required>
                     @for (semester of startsemesterOptions; track semester) {
                       <mat-option [value]="semester">{{ semester }}</mat-option>
                     }
@@ -94,7 +106,7 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
                   Konto erstellen
                 </button>
                 @if (allgemeinerFehler()) {
-                  <div class="fehler">{{ allgemeinerFehler() }}</div>
+                  <div class="allgemeiner-fehler" role="alert">{{ allgemeinerFehler() }}</div>
                 }
                 @if (erfolg()) {
                   <div class="erfolg">
@@ -112,6 +124,8 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
           </mat-card>
         </div>
       </div>
+    } @else {
+      <app-modules />
     }
   `,
   styles: [`
@@ -166,6 +180,7 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
 
     .register-btn {
       margin-top: 0.5rem;
+      margin-bottom: 0.25rem;
       padding: 0.75rem 1rem;
       font-size: 1rem;
       font-weight: 700;
@@ -190,6 +205,12 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
       color: var(--status-gesperrt);
       font-size: 0.85rem;
       margin: -0.5rem 0 0.75rem;
+    }
+
+    .allgemeiner-fehler {
+      color: var(--status-gesperrt);
+      font-size: 0.85rem;
+      margin-top: 0.85rem;
     }
 
     .erfolg {
@@ -217,6 +238,19 @@ export class HomeComponent {
   protected readonly feldFehler = signal<Record<string, string>>({});
   protected readonly allgemeinerFehler = signal('');
 
+  /** Setzt alte Meldungen zurück, sobald eine Eingabe geändert wird. */
+  protected eingabeGeaendert(feld: string): void {
+    this.erfolg.set(false);
+    this.allgemeinerFehler.set('');
+    if (this.feldFehler()[feld]) {
+      this.feldFehler.update((aktuell) => {
+        const kopie = { ...aktuell };
+        delete kopie[feld];
+        return kopie;
+      });
+    }
+  }
+
   /** Sendet die Registrierung und zeigt Erfolg oder Fehler an. */
   protected onRegister(form: NgForm): void {
     this.laedt.set(true);
@@ -242,30 +276,35 @@ export class HomeComponent {
   }
 
   /**
-   * Ordnet eine Fehlerantwort dem passenden Feld zu.
-   * Bei 409 fehlt das Feld in der Antwort; betroffen ist dann die E-Mail-Adresse.
+   * Ordnet eine Fehlerantwort dem passenden Feld oder als globale Meldung zu.
+   * 400: Feldbezogene Fehler aus errors ([{ field, message }]) an den Eingabefeldern.
+   * 409: Globale Fehlermeldung aus message am Formular.
    */
   private fehlerZuordnen(fehler: HttpErrorResponse): void {
     const body = fehler.error as ApiFehler | null;
     const neu: Record<string, string> = {};
 
     if (body?.errors?.length) {
-      body.errors.forEach((e) => (neu[e.field] = e.message));
-    } else if (body?.field && body.message) {
+      body.errors.forEach((e) => {
+        const feld = e.field === 'semester' ? 'startsemester' : e.field;
+        neu[feld] = e.message;
+      });
+    } else if (body?.field && body.message && fehler.status !== 409) {
       neu[body.field] = body.message;
-    } else if (fehler.status === 409) {
-      neu['email'] = body?.message ?? 'E-Mail ist bereits vergeben';
     }
 
     if (Object.keys(neu).length > 0) {
       this.feldFehler.set(neu);
+    } else if (fehler.status === 409) {
+      this.allgemeinerFehler.set(body?.message ?? 'Diese E-Mail-Adresse ist bereits vergeben.');
     } else if (fehler.status === 0) {
       // Status 0: keine Antwort vom Server (Netzwerk- oder Verbindungsfehler).
       this.allgemeinerFehler.set(
         'Der Server ist gerade nicht erreichbar. Bitte später erneut versuchen.');
     } else {
       // Server hat geantwortet, die Antwort lässt sich aber keinem Feld zuordnen (z. B. 500).
-      this.allgemeinerFehler.set('Etwas ist schiefgelaufen. Bitte später erneut versuchen.');
+      this.allgemeinerFehler.set(
+        body?.message ?? 'Etwas ist schiefgelaufen. Bitte später erneut versuchen.');
     }
   }
 }

@@ -15,7 +15,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideHttpClient(withInterceptors([authInterceptor])),
-    // TODO: wieder aktivieren, sobald GET /api/auth/me existiert.
-    // provideAppInitializer(() => inject(AuthService).sitzungPruefen())
+    // Läuft einmal beim Start: stellt die Anmeldung aus dem gespeicherten Token wieder her.
+    provideAppInitializer(() => inject(AuthService).sitzungPruefen())
   ]
 };

@@ -58,19 +58,31 @@ describe('AuthService', () => {
     expect(service.getToken()).toBeNull();
   });
 
-  it('sollte beim Start mit Token die Anmeldung über /api/auth/me wiederherstellen', () => {
-    localStorage.setItem(TOKEN_KEY, 'abc');
+  it('sollte beim Start mit gültigem JWT die Anmeldung wiederherstellen', () => {
+    const payload = btoa(JSON.stringify({ email: 'a@b.de', rolle: 'STUDIERENDE' }));
+    localStorage.setItem(TOKEN_KEY, `header.${payload}.sig`);
 
     service.sitzungPruefen();
 
-    httpMock.expectOne('/api/auth/me').flush({ email: 'a@b.de', role: 'STUDIERENDE' });
     expect(service.aktuelleRolle()).toBe('STUDIERENDE');
     expect(service.email()).toBe('a@b.de');
   });
 
-  it('sollte ohne Token keine Anfrage an /api/auth/me senden', () => {
+  it('sollte beim Start mit abgelaufenem JWT das Token löschen', () => {
+    const abgelaufen = Math.floor(Date.now() / 1000) - 60;
+    const payload = btoa(JSON.stringify({ email: 'a@b.de', rolle: 'STUDIERENDE', exp: abgelaufen }));
+    localStorage.setItem(TOKEN_KEY, `header.${payload}.sig`);
+
     service.sitzungPruefen();
 
-    httpMock.expectNone('/api/auth/me');
+    expect(service.aktuelleRolle()).toBeNull();
+    expect(service.getToken()).toBeNull();
+  });
+
+  it('sollte ohne Token abgemeldet bleiben', () => {
+    service.sitzungPruefen();
+
+    expect(service.aktuelleRolle()).toBeNull();
+    expect(service.email()).toBe('');
   });
 });

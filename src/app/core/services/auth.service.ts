@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, tap } from 'rxjs';
+import { Observable, catchError, firstValueFrom, of, tap, timeout } from 'rxjs';
 
 /** Rolle der angemeldeten Person. null bedeutet: niemand ist angemeldet. */
 export type Rolle = 'STUDIERENDE' | 'PROFESSOR_IN' | null;
@@ -13,16 +13,17 @@ export interface LoginResponse {
   role: 'STUDIERENDE' | 'PROFESSOR_IN';
 }
 
-interface JwtPayload {
-  email?: string;
-  rolle?: 'STUDIERENDE' | 'PROFESSOR_IN';
-  exp?: number;
+/** Antwort von GET /api/me. Feldnamen genau wie im Backend (MeResponse.java). */
+export interface MeResponse {
+  id: number;
+  email: string;
+  role: 'STUDIERENDE' | 'PROFESSOR_IN';
+  /** Startsemester im Format "WS JJJJ"; bei PROFESSOR_IN null. */
+  startSemester: string | null;
 }
 
 /** Schlüssel, unter dem das Token im localStorage liegt. */
 export const TOKEN_KEY = 'studyplanner.token';
-export const ROLE_KEY = 'studyplanner.rolle';
-export const EMAIL_KEY = 'studyplanner.email';
 
 /**
  * Verwaltet die Anmeldung: Login, Logout und den Zustand der angemeldeten Person.
@@ -42,7 +43,9 @@ export class AuthService {
 
   /**
    * Meldet die Person am Backend an und merkt sich Token, Rolle und E-Mail.
-   * Das Backend liefert die E-Mail nicht im Response-Body mit, sie stammt aus dem Formular bzw. JWT.
+   * Gespeichert wird nur das Token. Rolle und E-Mail liegen in Signals und werden nach einem
+   * Reload über GET /api/me neu geladen (siehe sitzungPruefen).
+   * Das Backend liefert die E-Mail nicht im Response-Body mit, sie stammt aus dem Formular.
    * Das Observable liefert auch Fehler (z. B. 401), damit der Aufrufer sie anzeigen kann.
    */
   login(email: string, password: string): Observable<LoginResponse> {
@@ -50,8 +53,6 @@ export class AuthService {
       tap((antwort) => {
         // Token im localStorage: bewusst einfach gehalten, für dieses Projekt ausreichend.
         localStorage.setItem(TOKEN_KEY, antwort.token);
-        localStorage.setItem(ROLE_KEY, antwort.role);
-        localStorage.setItem(EMAIL_KEY, email);
         this.aktuelleRolle.set(antwort.role);
         this.email.set(email);
         this.sitzungAbgelaufen.set(false);
@@ -67,8 +68,6 @@ export class AuthService {
   /** Löscht Token und Anmeldezustand. */
   logout(): void {
     localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(ROLE_KEY);
-    localStorage.removeItem(EMAIL_KEY);
     this.aktuelleRolle.set(null);
     this.email.set('');
   }
@@ -81,40 +80,33 @@ export class AuthService {
   }
 
   /**
-   * Stellt beim Start der App die Anmeldung aus dem gespeicherten JWT (bzw. localStorage) wieder her.
-   * Ist das Token bereits abgelaufen, wird der Zustand bereinigt.
+   * Stellt beim Start der App die Anmeldung wieder her, wenn ein Token gespeichert ist.
+   * Rolle und E-Mail kommen vom Backend (GET /api/me), nicht aus dem Token selbst. So werden
+   * gelöschte Konten und geänderte Rollen sofort erkannt.
+   *
+   * Ist das Token abgelaufen oder ungültig, antwortet das Backend mit 401. Dann meldet der
+   * Interceptor ab und zeigt den Hinweis "Sitzung abgelaufen" (beiAbgelaufenerSitzung).
+   *
+   * Gibt ein Promise zurück, damit provideAppInitializer (app.config.ts) auf die Antwort
+   * wartet: Die Rolle ist bekannt, bevor die erste Seite angezeigt wird.
    */
-  sitzungPruefen(): void {
-    const token = this.getToken();
-    if (token === null) {
-      return;
+  sitzungPruefen(): Promise<void> {
+    // Ohne Token ist niemand angemeldet, eine Anfrage wäre überflüssig.
+    if (this.getToken() === null) {
+      return Promise.resolve();
     }
-
-    const payload = this.parseJwtPayload(token);
-    if (payload?.exp && payload.exp * 1000 <= Date.now()) {
-      this.logout();
-      return;
-    }
-
-    const rolle = payload?.rolle ?? (localStorage.getItem(ROLE_KEY) as Rolle);
-    const email = payload?.email ?? localStorage.getItem(EMAIL_KEY) ?? '';
-
-    if (rolle === 'STUDIERENDE' || rolle === 'PROFESSOR_IN') {
-      this.aktuelleRolle.set(rolle);
-      this.email.set(email);
-    }
-  }
-
-  private parseJwtPayload(token: string): JwtPayload | null {
-    const teile = token.split('.');
-    if (teile.length !== 3) {
-      return null;
-    }
-    try {
-      const base64 = teile[1].replace(/-/g, '+').replace(/_/g, '/');
-      return JSON.parse(atob(base64)) as JwtPayload;
-    } catch {
-      return null;
-    }
+    return firstValueFrom(
+      this.http.get<MeResponse>('/api/me').pipe(
+        // Antwortet das Backend nicht, soll die App nicht ewig beim Start hängen.
+        timeout(5000),
+        tap((antwort) => {
+          this.aktuelleRolle.set(antwort.role);
+          this.email.set(antwort.email);
+        }),
+        // Fehler (401, Server nicht erreichbar, Timeout): Die Person bleibt abgemeldet,
+        // die App startet trotzdem.
+        catchError(() => of(null)),
+      ),
+    ).then(() => undefined);
   }
 }

@@ -15,7 +15,8 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideHttpClient(withInterceptors([authInterceptor])),
-    // Läuft einmal beim Start: stellt die Anmeldung aus dem gespeicherten Token wieder her.
+    // Läuft einmal beim Start: stellt die Anmeldung über GET /api/me wieder her (E2-US7).
+    // Angular wartet auf das Promise, bevor die erste Seite angezeigt wird.
     provideAppInitializer(() => inject(AuthService).sitzungPruefen())
   ]
 };

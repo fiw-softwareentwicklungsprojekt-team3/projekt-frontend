@@ -24,7 +24,7 @@ describe('RegistrationService', () => {
     const req = httpMock.expectOne('/api/auth/register');
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual(anfrage);
-    req.flush({ id: 1, email: 'a@b.de', rolle: 'STUDIERENDE', startsemester: 'WS 2025' });
+    req.flush({ id: 1, email: 'a@b.de', role: 'STUDIERENDE', startsemester: 'WS 2025' });
   });
 
   it('sollte bei 409 den Status liefern', () => {

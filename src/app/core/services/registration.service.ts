@@ -13,7 +13,7 @@ export interface RegisterRequest {
 export interface RegisterResponse {
   id: number;
   email: string;
-  rolle: string;
+  role: string;
   startsemester: string;
 }
 

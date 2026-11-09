@@ -58,30 +58,64 @@ describe('AuthService', () => {
     expect(service.getToken()).toBeNull();
   });
 
-  it('sollte beim Start mit gültigem JWT die Anmeldung wiederherstellen', () => {
-    const payload = btoa(JSON.stringify({ email: 'a@b.de', rolle: 'STUDIERENDE' }));
-    localStorage.setItem(TOKEN_KEY, `header.${payload}.sig`);
+  it('sollte beim Start mit Token die Anmeldung über /api/me wiederherstellen', async () => {
+    localStorage.setItem(TOKEN_KEY, 'abc');
 
-    service.sitzungPruefen();
+    const fertig = service.sitzungPruefen();
 
+    httpMock
+      .expectOne('/api/me')
+      .flush({ id: 1, email: 'a@b.de', role: 'STUDIERENDE', startSemester: 'WS 2026' });
+    await fertig;
     expect(service.aktuelleRolle()).toBe('STUDIERENDE');
     expect(service.email()).toBe('a@b.de');
   });
 
-  it('sollte beim Start mit abgelaufenem JWT das Token löschen', () => {
-    const abgelaufen = Math.floor(Date.now() / 1000) - 60;
-    const payload = btoa(JSON.stringify({ email: 'a@b.de', rolle: 'STUDIERENDE', exp: abgelaufen }));
-    localStorage.setItem(TOKEN_KEY, `header.${payload}.sig`);
+  it('sollte erst fertig sein, wenn /api/me geantwortet hat', async () => {
+    localStorage.setItem(TOKEN_KEY, 'abc');
+    let istFertig = false;
 
-    service.sitzungPruefen();
+    const fertig = service.sitzungPruefen().then(() => {
+      istFertig = true;
+    });
+    await Promise.resolve();
+    // Noch keine Antwort: Der App-Start muss weiter warten.
+    expect(istFertig).toBe(false);
 
-    expect(service.aktuelleRolle()).toBeNull();
-    expect(service.getToken()).toBeNull();
+    httpMock
+      .expectOne('/api/me')
+      .flush({ id: 1, email: 'p@b.de', role: 'PROFESSOR_IN', startSemester: null });
+    await fertig;
+    expect(istFertig).toBe(true);
+    expect(service.aktuelleRolle()).toBe('PROFESSOR_IN');
   });
 
-  it('sollte ohne Token abgemeldet bleiben', () => {
-    service.sitzungPruefen();
+  it('sollte bei 401 von /api/me abgemeldet bleiben', async () => {
+    localStorage.setItem(TOKEN_KEY, 'abgelaufen');
 
+    const fertig = service.sitzungPruefen();
+
+    httpMock.expectOne('/api/me').flush(null, { status: 401, statusText: 'Unauthorized' });
+    await fertig;
+    expect(service.aktuelleRolle()).toBeNull();
+    expect(service.email()).toBe('');
+  });
+
+  it('sollte auch fertig werden, wenn das Backend nicht erreichbar ist', async () => {
+    localStorage.setItem(TOKEN_KEY, 'abc');
+
+    const fertig = service.sitzungPruefen();
+
+    httpMock.expectOne('/api/me').error(new ProgressEvent('error'), { status: 0 });
+    await fertig;
+    // App startet trotzdem, die Person gilt als abgemeldet.
+    expect(service.aktuelleRolle()).toBeNull();
+  });
+
+  it('sollte ohne Token abgemeldet bleiben und keine Anfrage senden', async () => {
+    await service.sitzungPruefen();
+
+    httpMock.expectNone('/api/me');
     expect(service.aktuelleRolle()).toBeNull();
     expect(service.email()).toBe('');
   });

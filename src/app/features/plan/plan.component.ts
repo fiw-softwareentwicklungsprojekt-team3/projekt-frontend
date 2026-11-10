@@ -1,5 +1,8 @@
 import { Component } from '@angular/core';
 
+/**
+ * Seite „Mein Studienplan“ für Studierende. Zeigt vorerst nur einen Platzhalter.
+ */
 @Component({
   selector: 'app-plan',
   standalone: true,

@@ -21,6 +21,10 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
   return Array.from({ length: anzahl }, (_, i) => `WS ${aktuell - (anzahl - 1) + i}`);
 }
 
+/**
+ * Startseite. Ohne Anmeldung zeigt sie das Registrierungsformular, mit Anmeldung den Modulkatalog.
+ * Fehler vom Backend werden dem passenden Formularfeld zugeordnet (z. B. 409: E-Mail vergeben).
+ */
 @Component({
   selector: 'app-home',
   standalone: true,

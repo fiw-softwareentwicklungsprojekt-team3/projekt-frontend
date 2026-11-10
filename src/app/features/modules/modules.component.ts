@@ -1,6 +1,10 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ModuleDto, ModuleService } from '../../core/services/module.service';
 
+/**
+ * Zeigt den Modulkatalog. Die Module kommen beim Start vom Backend (GET /api/modules).
+ * Solange geladen wird, steht ein Hinweis da. Schlägt das Laden fehl, erscheint eine Fehlermeldung.
+ */
 @Component({
   selector: 'app-modules',
   standalone: true,

@@ -14,6 +14,10 @@ export interface HealthResponse {
 export class HealthService {
   private readonly http = inject(HttpClient);
 
+  /**
+   * Ruft GET /api/health auf.
+   * Antwortet das Backend, ist es erreichbar. Ein Fehler (z. B. Status 0) heißt: offline.
+   */
   getHealth(): Observable<HealthResponse> {
     return this.http.get<HealthResponse>('/api/health');
   }

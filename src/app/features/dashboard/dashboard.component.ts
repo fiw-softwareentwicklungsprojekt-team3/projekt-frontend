@@ -1,5 +1,8 @@
 import { Component } from '@angular/core';
 
+/**
+ * Startseite für Lehrende. Zeigt vorerst nur einen Platzhalter.
+ */
 @Component({
   selector: 'app-dashboard',
   standalone: true,

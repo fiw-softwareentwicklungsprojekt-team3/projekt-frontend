@@ -157,7 +157,44 @@ describe('ModulesComponent', () => {
     expect(zeilenAlle.length).toBe(4);
   });
 
-  it('sollte bei Klick auf ein Modul GET /api/modules/{code} aufrufen und NOTWENDIG sowie EMPFOHLEN inkl. minLp/toleranceLp darstellen', () => {
+  it('sollte eine geöffnete Detailansicht beim Ändern eines Filters automatisch schließen', () => {
+    fixture.detectChanges();
+    httpMock.expectOne('/api/modules').flush(unsortierteModule);
+    fixture.detectChanges();
+
+    // Modul B34 (3. Semester) ausklappen
+    component['waehleModul']('B34');
+    httpMock.expectOne('/api/modules/B34').flush({
+      code: 'B34',
+      name: 'Softwareentwicklungsprojekt',
+      semester: 3,
+      type: 'P',
+      area: 'FACH',
+      hasChoice: false,
+      lp: 10,
+      lectureHours: 0,
+      exerciseHours: 6,
+      level: '1b',
+      term: 'WS',
+      countsForFinalGrade: true,
+      graded: true,
+      prerequisites: [],
+    });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.detail-panel')).toBeTruthy();
+
+    // Filter auf 1. Semester ändern -> Detailansicht muss geschlossen sein
+    component['setzeSemesterFilter'](1);
+    httpMock
+      .expectOne((r) => r.url === '/api/modules' && r.params.get('semester') === '1')
+      .flush([unsortierteModule[1], unsortierteModule[2]]);
+    fixture.detectChanges();
+
+    expect(component['ausgewaehlterCode']()).toBeNull();
+    expect(fixture.nativeElement.querySelector('.detail-panel')).toBeNull();
+  });
+
+  it('sollte bei Klick auf ein Modul GET /api/modules/{code} aufrufen und NOTWENDIG sowie EMPFOHLEN inkl. minLp/toleranceLp direkt unter dem Modul darstellen', () => {
     fixture.detectChanges();
     httpMock.expectOne('/api/modules').flush(unsortierteModule);
     fixture.detectChanges();
@@ -191,6 +228,9 @@ describe('ModulesComponent', () => {
     fixture.detectChanges();
 
     const element = fixture.nativeElement as HTMLElement;
+    // Prüfe, dass die Detailansicht als Tabellenzeile direkt unter der Modulzeile liegt
+    expect(ersteZeile.nextElementSibling?.classList.contains('detail-row--expanded')).toBe(true);
+
     const notwendige = element.querySelectorAll('.prerequisite-item--notwendig');
     const empfohlene = element.querySelectorAll('.prerequisite-item--empfohlen');
 

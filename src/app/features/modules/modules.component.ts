@@ -2,7 +2,6 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -19,7 +18,7 @@ import { ApiFehler } from '../../core/services/registration.service';
 /**
  * Modulkatalog-Ansicht (/modules): zeigt alle Module tabellarisch (mat-table),
  * bietet kombinierbare Filter (semester, type, term) und lädt bei Klick die
- * Detailansicht samt StuPO-Voraussetzungen (NOTWENDIG / EMPFOHLEN).
+ * Detailansicht direkt unterhalb des jeweiligen Moduls samt StuPO-Voraussetzungen (NOTWENDIG / EMPFOHLEN).
  */
 @Component({
   selector: 'app-modules',
@@ -30,7 +29,6 @@ import { ApiFehler } from '../../core/services/registration.service';
     MatFormFieldModule,
     MatSelectModule,
     MatButtonModule,
-    MatCardModule,
     MatIconModule,
     MatProgressSpinnerModule,
   ],
@@ -99,119 +97,6 @@ import { ApiFehler } from '../../core/services/registration.service';
         </button>
       </div>
 
-      <!-- Detailansicht eines ausgewählten Moduls -->
-      @if (ausgewaehlterCode()) {
-        <mat-card class="detail-card" role="region" aria-label="Moduldetails">
-          <div class="detail-header">
-            <h2>
-              @if (modulDetail(); as detail) {
-                {{ detail.code }} – {{ detail.name }}
-              } @else {
-                Modul {{ ausgewaehlterCode() }}
-              }
-            </h2>
-            <button
-              mat-icon-button
-              type="button"
-              aria-label="Detailansicht schließen"
-              (click)="schliesseDetail()"
-            >
-              <mat-icon>close</mat-icon>
-            </button>
-          </div>
-
-          @if (detailLaedt()) {
-            <div class="status-box" role="status">
-              <mat-spinner diameter="28" />
-              <span>Moduldetails werden geladen…</span>
-            </div>
-          } @else if (detailFehler()) {
-            <p class="fehler" role="alert">{{ detailFehler() }}</p>
-          } @else if (modulDetail(); as detail) {
-            <div class="detail-meta-grid">
-              <div class="meta-item">
-                <span class="meta-label">Fachsemester</span>
-                <span class="meta-value">{{ detail.semester }}. Semester</span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">Modulart</span>
-                <span class="meta-value">
-                  <span class="type-badge" [class.type-badge--wp]="detail.type === 'WP'">
-                    {{ detail.type === 'P' ? 'Pflicht (P)' : 'Wahlpflicht (WP)' }}
-                  </span>
-                </span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">Bereich</span>
-                <span class="meta-value">{{ detail.area }}</span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">Leistungspunkte</span>
-                <span class="meta-value">{{ detail.lp }} LP</span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">SWS</span>
-                <span class="meta-value">{{ formatSws(detail) }}</span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">Turnus</span>
-                <span class="meta-value">{{ detail.term }}</span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">Niveaustufe</span>
-                <span class="meta-value">{{ detail.level ?? '–' }}</span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">Bewertung</span>
-                <span class="meta-value">
-                  {{ detail.graded ? 'Benotet' : 'Unbenotet' }}
-                  ({{ detail.countsForFinalGrade ? 'zählt für Gesamtnote' : 'ohne Gesamtnote' }})
-                </span>
-              </div>
-            </div>
-
-            <div class="prerequisites-section">
-              <h3>Voraussetzungen laut StuPO</h3>
-              @if (detail.prerequisites.length === 0) {
-                <p class="no-prerequisites">Keine Voraussetzungen</p>
-              } @else {
-                @if (notwendigeVoraussetzungen().length > 0) {
-                  <div class="prerequisite-group">
-                    <h4 class="group-title group-title--notwendig">
-                      Notwendige Voraussetzungen (NOTWENDIG)
-                    </h4>
-                    <ul class="prerequisite-list">
-                      @for (voraus of notwendigeVoraussetzungen(); track $index) {
-                        <li class="prerequisite-item prerequisite-item--notwendig">
-                          <span class="kind-badge kind-badge--notwendig">{{ voraus.kind }}</span>
-                          <span class="prerequisite-text">{{ formatVoraussetzung(voraus) }}</span>
-                        </li>
-                      }
-                    </ul>
-                  </div>
-                }
-
-                @if (empfohleneVoraussetzungen().length > 0) {
-                  <div class="prerequisite-group">
-                    <h4 class="group-title group-title--empfohlen">
-                      Empfohlene Voraussetzungen (EMPFOHLEN)
-                    </h4>
-                    <ul class="prerequisite-list">
-                      @for (voraus of empfohleneVoraussetzungen(); track $index) {
-                        <li class="prerequisite-item prerequisite-item--empfohlen">
-                          <span class="kind-badge kind-badge--empfohlen">{{ voraus.kind }}</span>
-                          <span class="prerequisite-text">{{ formatVoraussetzung(voraus) }}</span>
-                        </li>
-                      }
-                    </ul>
-                  </div>
-                }
-              }
-            </div>
-          }
-        </mat-card>
-      }
-
       <!-- Ladezustand, Fehler oder Modultabelle -->
       @if (laedt()) {
         <div class="status-box" role="status">
@@ -224,7 +109,7 @@ import { ApiFehler } from '../../core/services/registration.service';
         <p class="empty-hint">Keine Module für die gewählten Filter gefunden.</p>
       } @else {
         <div class="table-container">
-          <table mat-table [dataSource]="module()" class="modules-table">
+          <table mat-table [dataSource]="module()" multiTemplateDataRows class="modules-table">
             <ng-container matColumnDef="code">
               <th mat-header-cell *matHeaderCellDef>Code</th>
               <td mat-cell *matCellDef="let modul">
@@ -266,6 +151,140 @@ import { ApiFehler } from '../../core/services/registration.service';
               <td mat-cell *matCellDef="let modul">{{ modul.term }}</td>
             </ng-container>
 
+            <!-- Ausklappbare Detailzeile direkt unterhalb des angeklickten Moduls -->
+            <ng-container matColumnDef="expandedDetail">
+              <td
+                mat-cell
+                *matCellDef="let modul"
+                [attr.colspan]="displayedColumns.length"
+                class="detail-cell"
+              >
+                @if (ausgewaehlterCode() === modul.code) {
+                  <div class="detail-panel" role="region" aria-label="Moduldetails">
+                    <div class="detail-header">
+                      <h2>
+                        @if (modulDetail(); as detail) {
+                          {{ detail.code }} – {{ detail.name }}
+                        } @else {
+                          {{ modul.code }} – {{ modul.name }}
+                        }
+                      </h2>
+                      <button
+                        mat-icon-button
+                        type="button"
+                        aria-label="Detailansicht schließen"
+                        (click)="schliesseDetail(); $event.stopPropagation()"
+                      >
+                        <mat-icon>close</mat-icon>
+                      </button>
+                    </div>
+
+                    @if (detailLaedt()) {
+                      <div class="status-box" role="status">
+                        <mat-spinner diameter="28" />
+                        <span>Moduldetails werden geladen…</span>
+                      </div>
+                    } @else if (detailFehler()) {
+                      <p class="fehler" role="alert">{{ detailFehler() }}</p>
+                    } @else if (modulDetail(); as detail) {
+                      <div class="detail-meta-grid">
+                        <div class="meta-item">
+                          <span class="meta-label">Fachsemester</span>
+                          <span class="meta-value">{{ detail.semester }}. Semester</span>
+                        </div>
+                        <div class="meta-item">
+                          <span class="meta-label">Modulart</span>
+                          <span class="meta-value">
+                            <span class="type-badge" [class.type-badge--wp]="detail.type === 'WP'">
+                              {{ detail.type === 'P' ? 'Pflicht (P)' : 'Wahlpflicht (WP)' }}
+                            </span>
+                          </span>
+                        </div>
+                        <div class="meta-item">
+                          <span class="meta-label">Bereich</span>
+                          <span class="meta-value">{{ detail.area }}</span>
+                        </div>
+                        <div class="meta-item">
+                          <span class="meta-label">Leistungspunkte</span>
+                          <span class="meta-value">{{ detail.lp }} LP</span>
+                        </div>
+                        <div class="meta-item">
+                          <span class="meta-label">SWS</span>
+                          <span class="meta-value">{{ formatSws(detail) }}</span>
+                        </div>
+                        <div class="meta-item">
+                          <span class="meta-label">Turnus</span>
+                          <span class="meta-value">{{ detail.term }}</span>
+                        </div>
+                        <div class="meta-item">
+                          <span class="meta-label">Niveaustufe</span>
+                          <span class="meta-value">{{ detail.level ?? '–' }}</span>
+                        </div>
+                        <div class="meta-item">
+                          <span class="meta-label">Bewertung</span>
+                          <span class="meta-value">
+                            {{ detail.graded ? 'Benotet' : 'Unbenotet' }}
+                            ({{
+                              detail.countsForFinalGrade
+                                ? 'zählt für Gesamtnote'
+                                : 'ohne Gesamtnote'
+                            }})
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="prerequisites-section">
+                        <h3>Voraussetzungen laut StuPO</h3>
+                        @if (detail.prerequisites.length === 0) {
+                          <p class="no-prerequisites">Keine Voraussetzungen</p>
+                        } @else {
+                          @if (notwendigeVoraussetzungen().length > 0) {
+                            <div class="prerequisite-group">
+                              <h4 class="group-title group-title--notwendig">
+                                Notwendige Voraussetzungen (NOTWENDIG)
+                              </h4>
+                              <ul class="prerequisite-list">
+                                @for (voraus of notwendigeVoraussetzungen(); track $index) {
+                                  <li class="prerequisite-item prerequisite-item--notwendig">
+                                    <span class="kind-badge kind-badge--notwendig">{{
+                                      voraus.kind
+                                    }}</span>
+                                    <span class="prerequisite-text">{{
+                                      formatVoraussetzung(voraus)
+                                    }}</span>
+                                  </li>
+                                }
+                              </ul>
+                            </div>
+                          }
+
+                          @if (empfohleneVoraussetzungen().length > 0) {
+                            <div class="prerequisite-group">
+                              <h4 class="group-title group-title--empfohlen">
+                                Empfohlene Voraussetzungen (EMPFOHLEN)
+                              </h4>
+                              <ul class="prerequisite-list">
+                                @for (voraus of empfohleneVoraussetzungen(); track $index) {
+                                  <li class="prerequisite-item prerequisite-item--empfohlen">
+                                    <span class="kind-badge kind-badge--empfohlen">{{
+                                      voraus.kind
+                                    }}</span>
+                                    <span class="prerequisite-text">{{
+                                      formatVoraussetzung(voraus)
+                                    }}</span>
+                                  </li>
+                                }
+                              </ul>
+                            </div>
+                          }
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              </td>
+            </ng-container>
+
             <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
             <tr
               mat-row
@@ -274,10 +293,17 @@ import { ApiFehler } from '../../core/services/registration.service';
               [class.module-row--selected]="ausgewaehlterCode() === row.code"
               tabindex="0"
               role="button"
+              [attr.aria-expanded]="ausgewaehlterCode() === row.code"
               [attr.aria-label]="'Details zu Modul ' + row.code + ' anzeigen'"
               (click)="waehleModul(row.code)"
               (keydown.enter)="waehleModul(row.code)"
               (keydown.space)="waehleModul(row.code); $event.preventDefault()"
+            ></tr>
+            <tr
+              mat-row
+              *matRowDef="let row; columns: ['expandedDetail']"
+              class="detail-row"
+              [class.detail-row--expanded]="ausgewaehlterCode() === row.code"
             ></tr>
           </table>
         </div>
@@ -367,6 +393,25 @@ import { ApiFehler } from '../../core/services/registration.service';
         background-color: rgba(118, 185, 0, 0.16);
       }
 
+      .detail-row:not(.detail-row--expanded) {
+        display: none;
+      }
+
+      .detail-cell {
+        padding: 0 !important;
+        border-bottom-width: 0;
+      }
+
+      .detail-row--expanded .detail-cell {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+      }
+
+      .detail-panel {
+        padding: 1.25rem 1.5rem;
+        background: #fafcf6;
+        border-left: 4px solid var(--htw-green);
+      }
+
       .type-badge {
         display: inline-block;
         padding: 0.15rem 0.55rem;
@@ -382,30 +427,22 @@ import { ApiFehler } from '../../core/services/registration.service';
         color: var(--htw-blue);
       }
 
-      .detail-card {
-        margin-bottom: 1.5rem;
-        padding: 1.25rem 1.5rem;
-        border-radius: 12px;
-        background: #ffffff;
-        border: 1px solid rgba(0, 0, 0, 0.1);
-      }
-
       .detail-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 1rem;
-        margin-bottom: 1rem;
+        margin-bottom: 0.85rem;
       }
 
       .detail-header h2 {
         margin: 0;
-        font-size: 1.25rem;
+        font-size: 1.15rem;
       }
 
       .detail-meta-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
         gap: 0.75rem 1rem;
         padding-bottom: 1rem;
         border-bottom: 1px solid rgba(0, 0, 0, 0.08);
@@ -434,7 +471,7 @@ import { ApiFehler } from '../../core/services/registration.service';
 
       .prerequisites-section h3 {
         margin: 0 0 0.75rem;
-        font-size: 1.05rem;
+        font-size: 1rem;
       }
 
       .no-prerequisites {
@@ -560,34 +597,46 @@ export class ModulesComponent implements OnInit {
     this.ladeModule();
   }
 
-  /** Setzt den Fachsemester-Filter und lädt die Tabelle neu. */
+  /** Setzt den Fachsemester-Filter, schließt eine offene Detailansicht und lädt die Tabelle neu. */
   protected setzeSemesterFilter(semester: number | null): void {
     this.semesterFilter.set(semester);
+    this.schliesseDetail();
     this.ladeModule();
   }
 
-  /** Setzt den Modulart-Filter (P/WP) und lädt die Tabelle neu. */
+  /** Setzt den Modulart-Filter (P/WP), schließt eine offene Detailansicht und lädt die Tabelle neu. */
   protected setzeTypeFilter(type: 'P' | 'WP' | null): void {
     this.typeFilter.set(type);
+    this.schliesseDetail();
     this.ladeModule();
   }
 
-  /** Setzt den Turnus-Filter (WS/SS) und lädt die Tabelle neu. */
+  /** Setzt den Turnus-Filter (WS/SS), schließt eine offene Detailansicht und lädt die Tabelle neu. */
   protected setzeTermFilter(term: 'WS' | 'SS' | null): void {
     this.termFilter.set(term);
+    this.schliesseDetail();
     this.ladeModule();
   }
 
-  /** Setzt alle Filter auf den Ausgangszustand zurück und lädt alle Module. */
+  /** Setzt alle Filter auf den Ausgangszustand zurück, schließt die Detailansicht und lädt alle Module. */
   protected filterZuruecksetzen(): void {
     this.semesterFilter.set(null);
     this.typeFilter.set(null);
     this.termFilter.set(null);
+    this.schliesseDetail();
     this.ladeModule();
   }
 
-  /** Lädt die Detailansicht eines Moduls über GET /api/modules/{code}. */
+  /**
+   * Öffnet oder schließt die Detailansicht eines Moduls direkt unter dessen Tabellenzeile
+   * und lädt beim Öffnen die Detaildaten über GET /api/modules/{code}.
+   */
   protected waehleModul(code: string): void {
+    if (this.ausgewaehlterCode() === code) {
+      this.schliesseDetail();
+      return;
+    }
+
     this.ausgewaehlterCode.set(code);
     this.modulDetail.set(null);
     this.detailFehler.set('');

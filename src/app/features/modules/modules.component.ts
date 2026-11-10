@@ -45,7 +45,7 @@ import { ApiFehler } from '../../core/services/registration.service';
 
       <!-- Filterleiste -->
       <div class="filter-bar" role="region" aria-label="Modulfilter">
-        <mat-form-field appearance="outline" class="filter-field">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
           <mat-label>Fachsemester</mat-label>
           <mat-select
             [ngModel]="semesterFilter()"
@@ -59,7 +59,7 @@ import { ApiFehler } from '../../core/services/registration.service';
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="filter-field">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
           <mat-label>Modulart</mat-label>
           <mat-select
             [ngModel]="typeFilter()"
@@ -72,7 +72,7 @@ import { ApiFehler } from '../../core/services/registration.service';
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline" class="filter-field">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
           <mat-label>Turnus</mat-label>
           <mat-select
             [ngModel]="termFilter()"
@@ -123,8 +123,8 @@ import { ApiFehler } from '../../core/services/registration.service';
             </ng-container>
 
             <ng-container matColumnDef="semester">
-              <th mat-header-cell *matHeaderCellDef>Fachsemester</th>
-              <td mat-cell *matCellDef="let modul">{{ modul.semester }}</td>
+              <th mat-header-cell *matHeaderCellDef class="col-semester">Fachsemester</th>
+              <td mat-cell *matCellDef="let modul" class="col-semester">{{ modul.semester }}</td>
             </ng-container>
 
             <ng-container matColumnDef="type">
@@ -342,7 +342,8 @@ import { ApiFehler } from '../../core/services/registration.service';
       }
 
       .reset-btn {
-        height: 48px;
+        height: 56px;
+        padding: 0 1.25rem;
       }
 
       .status-box {
@@ -376,6 +377,10 @@ import { ApiFehler } from '../../core/services/registration.service';
 
       .modules-table {
         width: 100%;
+      }
+
+      .col-semester {
+        text-align: center;
       }
 
       .module-row {

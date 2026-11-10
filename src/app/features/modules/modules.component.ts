@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
+import { Subscription } from 'rxjs';
 import {
   ModuleDetailDto,
   ModuleDto,
@@ -552,6 +553,7 @@ import { ApiFehler } from '../../core/services/registration.service';
 })
 export class ModulesComponent implements OnInit {
   private readonly moduleService = inject(ModuleService);
+  private ladeAbo: Subscription | null = null;
 
   /** Spalten der Modultabelle (mat-table). */
   protected readonly displayedColumns = [
@@ -649,10 +651,16 @@ export class ModulesComponent implements OnInit {
 
     this.moduleService.getModule(code).subscribe({
       next: (detail) => {
+        if (this.ausgewaehlterCode() !== code) {
+          return;
+        }
         this.modulDetail.set(detail);
         this.detailLaedt.set(false);
       },
       error: (err: HttpErrorResponse) => {
+        if (this.ausgewaehlterCode() !== code) {
+          return;
+        }
         this.detailLaedt.set(false);
         this.detailFehler.set(
           this.fehlertextErmitteln(err, 'Die Moduldetails konnten nicht geladen werden.'),
@@ -686,9 +694,7 @@ export class ModulesComponent implements OnInit {
    */
   protected formatVoraussetzung(voraus: PrerequisiteDto): string {
     if (voraus.moduleCode) {
-      return voraus.moduleName
-        ? `${voraus.moduleCode} – ${voraus.moduleName}`
-        : voraus.moduleCode;
+      return voraus.moduleName ? `${voraus.moduleCode} – ${voraus.moduleName}` : voraus.moduleCode;
     }
     if (voraus.minLp != null) {
       if (voraus.toleranceLp != null && voraus.toleranceLp > 0) {
@@ -703,8 +709,9 @@ export class ModulesComponent implements OnInit {
   private ladeModule(): void {
     this.laedt.set(true);
     this.fehler.set('');
+    this.ladeAbo?.unsubscribe();
 
-    this.moduleService
+    this.ladeAbo = this.moduleService
       .getModules({
         semester: this.semesterFilter(),
         type: this.typeFilter(),

@@ -51,15 +51,17 @@
             <span class="login-title">Anmeldung</span>
           </div>
 
-          <form #loginForm="ngForm" (submit)="$event.preventDefault()">
+          <form #loginForm="ngForm" class="login-form" (submit)="$event.preventDefault()">
             <!-- Eingabefeld: E-Mail -->
-            <mat-form-field appearance="outline" class="full-width">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
               <mat-label>E-Mail</mat-label>
-              <input matInput type="email" name="email" [(ngModel)]="email" (ngModelChange)="eingabeGeaendert('email')" #loginEmailModel="ngModel" required email placeholder="name@student.htw-berlin.de" />
+              <input matInput type="email" name="email" [(ngModel)]="email" (ngModelChange)="eingabeGeaendert('email')" #loginEmailModel="ngModel" required email [pattern]="htwEmailMuster" placeholder="name@student.htw-berlin.de" />
               @if (loginEmailModel.hasError('required')) {
                 <mat-error>E-Mail-Adresse darf nicht leer sein.</mat-error>
               } @else if (loginEmailModel.hasError('email')) {
                 <mat-error>Bitte eine gültige E-Mail-Adresse eingeben.</mat-error>
+              } @else if (loginEmailModel.hasError('pattern')) {
+                <mat-error>Bitte eine gültige HTW-E-Mail-Adresse (&#64;student.htw-berlin.de oder &#64;htw-berlin.de) eingeben.</mat-error>
               }
             </mat-form-field>
             @if (loginFeldFehler()['email']) {
@@ -67,7 +69,7 @@
             }
 
             <!-- Eingabefeld: Passwort -->
-            <mat-form-field appearance="outline" class="full-width">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
               <mat-label>Passwort</mat-label>
               <input matInput type="password" name="password" [(ngModel)]="passwort" (ngModelChange)="eingabeGeaendert('password')" #loginPasswortModel="ngModel" required minlength="8" placeholder="Passwort" (keyup.enter)="!loginForm.invalid && doLogin(loginTrigger, loginForm)" />
               @if (loginPasswortModel.hasError('required')) {

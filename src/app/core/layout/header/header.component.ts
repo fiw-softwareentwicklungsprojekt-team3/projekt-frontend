@@ -11,6 +11,7 @@ import { MatInputModule } from '@angular/material/input';
 import { AuthService } from '../../services/auth.service';
 import { HealthService } from '../../services/health.service';
 import { ApiFehler } from '../../services/registration.service';
+import { HTW_EMAIL_LOGIN } from '../../validation/htw-email';
 
 /**
  * Kopfzeile der App: Navigation nach Rolle, Backend-Status sowie Login-Menü und Logout.
@@ -41,6 +42,8 @@ export class HeaderComponent implements OnInit {
   // Formular-Felder für das Login-Dropdown (Signals, damit die Anzeige zoneless aktualisiert wird):
   protected readonly email = signal('');
   protected readonly passwort = signal('');
+  // Erlaubt beim Login @student.htw-berlin.de und @htw-berlin.de (zweite Prüfung nach "email").
+  protected readonly htwEmailMuster = HTW_EMAIL_LOGIN;
   /** Fehlermeldung des letzten Login-Versuchs, leer wenn kein Fehler vorliegt. */
   protected readonly loginFehler = signal('');
   protected readonly loginFeldFehler = signal<Record<string, string>>({});

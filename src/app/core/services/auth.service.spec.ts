@@ -24,20 +24,20 @@ describe('AuthService', () => {
   });
 
   it('sollte nach dem Login Rolle, E-Mail und Token setzen', () => {
-    service.login('a@b.de', 'geheim123').subscribe();
+    service.login('a@student.htw-berlin.de', 'geheim123').subscribe();
 
     const req = httpMock.expectOne('/api/auth/login');
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ email: 'a@b.de', password: 'geheim123' });
+    expect(req.request.body).toEqual({ email: 'a@student.htw-berlin.de', password: 'geheim123' });
     req.flush({ token: 'abc', expiresIn: 3600, role: 'PROFESSOR_IN' });
 
     expect(service.aktuelleRolle()).toBe('PROFESSOR_IN');
-    expect(service.email()).toBe('a@b.de');
+    expect(service.email()).toBe('a@student.htw-berlin.de');
     expect(service.getToken()).toBe('abc');
   });
 
   it('sollte bei falschen Daten nichts speichern', () => {
-    service.login('a@b.de', 'falsch').subscribe({ error: () => undefined });
+    service.login('a@student.htw-berlin.de', 'falsch').subscribe({ error: () => undefined });
 
     httpMock.expectOne('/api/auth/login').flush(null, { status: 401, statusText: 'Unauthorized' });
 
@@ -46,7 +46,7 @@ describe('AuthService', () => {
   });
 
   it('sollte beim Logout Token und Zustand löschen', () => {
-    service.login('a@b.de', 'geheim123').subscribe();
+    service.login('a@student.htw-berlin.de', 'geheim123').subscribe();
     httpMock
       .expectOne('/api/auth/login')
       .flush({ token: 'abc', expiresIn: 3600, role: 'STUDIERENDE' });
@@ -65,10 +65,10 @@ describe('AuthService', () => {
 
     httpMock
       .expectOne('/api/me')
-      .flush({ id: 1, email: 'a@b.de', role: 'STUDIERENDE', startSemester: 'WS 2026' });
+      .flush({ id: 1, email: 'a@student.htw-berlin.de', role: 'STUDIERENDE', startSemester: 'WS 2026' });
     await fertig;
     expect(service.aktuelleRolle()).toBe('STUDIERENDE');
-    expect(service.email()).toBe('a@b.de');
+    expect(service.email()).toBe('a@student.htw-berlin.de');
   });
 
   it('sollte erst fertig sein, wenn /api/me geantwortet hat', async () => {
@@ -84,7 +84,7 @@ describe('AuthService', () => {
 
     httpMock
       .expectOne('/api/me')
-      .flush({ id: 1, email: 'p@b.de', role: 'PROFESSOR_IN', startSemester: null });
+      .flush({ id: 1, email: 'p@htw-berlin.de', role: 'PROFESSOR_IN', startSemester: null });
     await fertig;
     expect(istFertig).toBe(true);
     expect(service.aktuelleRolle()).toBe('PROFESSOR_IN');

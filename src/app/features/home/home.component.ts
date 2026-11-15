@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { AuthService } from '../../core/services/auth.service';
 import { ApiFehler, RegistrationService } from '../../core/services/registration.service';
+import { HTW_EMAIL_REGISTRIERUNG } from '../../core/validation/htw-email';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ModulesComponent } from '../modules/modules.component';
 
@@ -56,14 +57,16 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
             <mat-card-content class="card-body">
               <form class="register-form" #f="ngForm" (submit)="$event.preventDefault()">
                 <!-- E-Mail -->
-                <mat-form-field appearance="outline" class="full-width">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
                   <mat-label>HTW E-Mail-Adresse</mat-label>
-                  <input matInput type="email" [(ngModel)]="email" (ngModelChange)="eingabeGeaendert('email')" #emailModel="ngModel" name="email" required email placeholder="name@student.htw-berlin.de" />
+                  <input matInput type="email" [(ngModel)]="email" (ngModelChange)="eingabeGeaendert('email')" #emailModel="ngModel" name="email" required email [pattern]="htwEmailMuster" placeholder="name@student.htw-berlin.de" />
                   <mat-icon matSuffix>email</mat-icon>
                   @if (emailModel.hasError('required')) {
                     <mat-error>E-Mail-Adresse darf nicht leer sein.</mat-error>
                   } @else if (emailModel.hasError('email')) {
                     <mat-error>Bitte eine gültige E-Mail-Adresse eingeben.</mat-error>
+                  } @else if (emailModel.hasError('pattern')) {
+                    <mat-error>Bitte eine gültige HTW-E-Mail-Adresse (&#64;student.htw-berlin.de) eingeben.</mat-error>
                   }
                 </mat-form-field>
                 @if (feldFehler()['email']) {
@@ -71,7 +74,7 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
                 }
 
                 <!-- Passwort -->
-                <mat-form-field appearance="outline" class="full-width">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
                   <mat-label>Passwort wählen</mat-label>
                   <input matInput type="password" [(ngModel)]="passwort" (ngModelChange)="eingabeGeaendert('password')" #passwortModel="ngModel" name="passwort" required minlength="8" placeholder="Mindestens 8 Zeichen" />
                   <mat-icon matSuffix>lock</mat-icon>
@@ -86,7 +89,7 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
                 }
 
                 <!-- Startsemester -->
-                <mat-form-field appearance="outline" class="full-width">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
                   <mat-label>Startsemester</mat-label>
                   <mat-select [(ngModel)]="startsemester" (ngModelChange)="eingabeGeaendert('startsemester')" name="startsemester" required>
                     @for (semester of startsemesterOptions; track semester) {
@@ -172,10 +175,13 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
       padding: 1rem 1.5rem 1.5rem 1.5rem;
     }
 
+    /* Die Felder reservieren keinen festen Platz für Fehlermeldungen (subscriptSizing="dynamic").
+       Der Abstand zwischen den Feldern kommt deshalb von hier. Lange Meldungen dürfen umbrechen
+       und schieben die nächsten Felder nach unten, statt sie zu überdecken. */
     .register-form {
       display: flex;
       flex-direction: column;
-      gap: 0.25rem;
+      gap: 1.25rem;
     }
 
     .full-width {
@@ -183,7 +189,7 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
     }
 
     .register-btn {
-      margin-top: 0.5rem;
+      margin-top: 0.25rem;
       margin-bottom: 0.25rem;
       padding: 0.75rem 1rem;
       font-size: 1rem;
@@ -208,7 +214,9 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
     .fehler {
       color: var(--status-gesperrt);
       font-size: 0.85rem;
-      margin: -0.5rem 0 0.75rem;
+      /* Rückt die Meldung des Backends näher an ihr Feld, der Abstand nach unten kommt vom gap. */
+      margin: -0.85rem 0 0;
+      padding: 0 1rem;
     }
 
     .allgemeiner-fehler {
@@ -230,6 +238,8 @@ export class HomeComponent {
   // Formularfelder für die Registrierung:
   protected email = '';
   protected passwort = '';
+  // Erlaubt bei der Registrierung nur @student.htw-berlin.de (zweite Prüfung nach "email").
+  protected readonly htwEmailMuster = HTW_EMAIL_REGISTRIERUNG;
   // Reihenfolge beachten: Der Startwert nutzt die Liste.
   protected readonly startsemesterOptions = letzteWintersemester();
   protected startsemester = this.startsemesterOptions.at(-1) ?? '';

@@ -150,12 +150,21 @@
   font-weight: 600;
 }
 
+// Die Felder reservieren keinen festen Platz für Fehlermeldungen (subscriptSizing="dynamic").
+// Der Abstand zwischen den Feldern kommt deshalb von hier. Lange Meldungen dürfen umbrechen
+// und schieben die nächsten Felder nach unten, statt sie zu überdecken.
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 .full-width {
   width: 100%;
 }
 
 .submit-btn {
-  margin-top: 0.5rem;
+  margin-top: 0.25rem;
   font-weight: 600;
   background-color: var(--htw-green) !important;
   color: var(--mat-sys-on-primary) !important;
@@ -205,7 +214,8 @@
 }
 
 .login-fehler {
-  margin: 0 0 0.75rem;
+  // Rückt die Meldung näher an ihr Feld, der Abstand nach unten kommt vom gap.
+  margin: -0.6rem 0 0;
   color: var(--status-gesperrt);
   font-size: 0.875rem;
 }

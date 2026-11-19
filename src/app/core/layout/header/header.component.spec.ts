@@ -28,7 +28,7 @@ describe('HeaderComponent – E-Mail-Prüfung beim Login', () => {
           { path: 'dashboard', children: [] },
           { path: 'modules', children: [] },
         ]),
-      ],    
+      ],
     }).compileComponents();
 
     httpMock = TestBed.inject(HttpTestingController);

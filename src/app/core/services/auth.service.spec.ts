@@ -119,4 +119,12 @@ describe('AuthService', () => {
     expect(service.aktuelleRolle()).toBeNull();
     expect(service.email()).toBe('');
   });
+
+  it('sollte Lehrende ins Dashboard und Studierende in den Modulkatalog leiten', () => {
+    service.aktuelleRolle.set('PROFESSOR_IN');
+    expect(service.startseite()).toBe('/dashboard');
+
+    service.aktuelleRolle.set('STUDIERENDE');
+    expect(service.startseite()).toBe('/modules');
+  });
 });

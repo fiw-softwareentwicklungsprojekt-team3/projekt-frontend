@@ -9,5 +9,8 @@
 /** Registrierung: nur Studierende, also nur @student.htw-berlin.de. */
 export const HTW_EMAIL_REGISTRIERUNG = /^[^@]+@student\.htw-berlin\.de$/i;
 
+/** Registrierung für Lehrende: nur @htw-berlin.de (ohne student.). */
+export const HTW_EMAIL_LEHRENDE = /^[^@]+@htw-berlin\.de$/i;
+
 /** Login: Studierende (@student.htw-berlin.de) und Lehrende (@htw-berlin.de). */
 export const HTW_EMAIL_LOGIN = /^[^@]+@(student\.)?htw-berlin\.de$/i;

@@ -119,4 +119,29 @@ describe('HomeComponent – E-Mail-Prüfung bei der Registrierung', () => {
     const meldung = fixture.nativeElement.querySelector('.fehler') as HTMLElement;
     expect(meldung.textContent?.trim()).toBe('email muss auf @student.htw-berlin.de enden');
   });
+
+  it('zeigt nach erfolgreicher Registrierung die Erfolgsmeldung ohne Validierungsfehler an und blendet sie beim Fokussieren eines Feldes aus', async () => {
+    await formularAusfuellen('name@student.htw-berlin.de');
+    registrierenButton().click();
+
+    httpMock.expectOne('/api/auth/register').flush({
+      id: 1,
+      email: 'name@student.htw-berlin.de',
+      role: 'STUDIERENDE',
+      startsemester: 'WS 2026',
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const erfolg = fixture.nativeElement.querySelector('.erfolg') as HTMLElement | null;
+    expect(erfolg?.textContent?.trim()).toBe(
+      'Konto erstellt. Bitte melde dich oben rechts im Menü über Login an.',
+    );
+    expect(fehlermeldungen()).toEqual([]);
+
+    const emailFeld = fixture.nativeElement.querySelector('input[name="email"]') as HTMLInputElement;
+    emailFeld.dispatchEvent(new Event('focus'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.erfolg')).toBeNull();
+  });
 });

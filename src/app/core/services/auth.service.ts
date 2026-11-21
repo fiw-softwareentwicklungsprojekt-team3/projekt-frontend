@@ -65,6 +65,11 @@ export class AuthService {
     return localStorage.getItem(TOKEN_KEY);
   }
 
+  /** Startseite der angemeldeten Rolle: Lehrende im Dashboard, alle anderen im Modulkatalog. */
+  startseite(): string {
+    return this.aktuelleRolle() === 'PROFESSOR_IN' ? '/dashboard' : '/modules';
+  }
+
   /** Löscht Token und Anmeldezustand. */
   logout(): void {
     localStorage.removeItem(TOKEN_KEY);

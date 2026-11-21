@@ -21,7 +21,14 @@ describe('HeaderComponent – E-Mail-Prüfung beim Login', () => {
     localStorage.clear();
     await TestBed.configureTestingModule({
       imports: [HeaderComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([
+          { path: 'dashboard', children: [] },
+          { path: 'modules', children: [] },
+        ]),
+      ],
     }).compileComponents();
 
     httpMock = TestBed.inject(HttpTestingController);

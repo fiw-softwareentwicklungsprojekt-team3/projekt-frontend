@@ -59,7 +59,7 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
                 <!-- E-Mail -->
                 <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
                   <mat-label>HTW E-Mail-Adresse</mat-label>
-                  <input matInput type="email" [(ngModel)]="email" (ngModelChange)="eingabeGeaendert('email')" #emailModel="ngModel" name="email" required email [pattern]="htwEmailMuster" placeholder="name@student.htw-berlin.de" />
+                  <input matInput type="email" [(ngModel)]="email" (focus)="erfolg.set(false)" (ngModelChange)="eingabeGeaendert('email')" #emailModel="ngModel" name="email" required email [pattern]="htwEmailMuster" placeholder="name@student.htw-berlin.de" />
                   <mat-icon matSuffix>email</mat-icon>
                   @if (emailModel.hasError('required')) {
                     <mat-error>E-Mail-Adresse darf nicht leer sein.</mat-error>
@@ -76,7 +76,7 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
                 <!-- Passwort -->
                 <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
                   <mat-label>Passwort wählen</mat-label>
-                  <input matInput type="password" [(ngModel)]="passwort" (ngModelChange)="eingabeGeaendert('password')" #passwortModel="ngModel" name="passwort" required minlength="8" placeholder="Mindestens 8 Zeichen" />
+                  <input matInput type="password" [(ngModel)]="passwort" (focus)="erfolg.set(false)" (ngModelChange)="eingabeGeaendert('password')" #passwortModel="ngModel" name="passwort" required minlength="8" placeholder="Mindestens 8 Zeichen" />
                   <mat-icon matSuffix>lock</mat-icon>
                   @if (passwortModel.hasError('required')) {
                     <mat-error>Passwort darf nicht leer sein.</mat-error>
@@ -91,7 +91,7 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
                 <!-- Startsemester -->
                 <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
                   <mat-label>Startsemester</mat-label>
-                  <mat-select [(ngModel)]="startsemester" (ngModelChange)="eingabeGeaendert('startsemester')" name="startsemester" required>
+                  <mat-select [(ngModel)]="startsemester" (focus)="erfolg.set(false)" (ngModelChange)="eingabeGeaendert('startsemester')" name="startsemester" required>
                     @for (semester of startsemesterOptions; track semester) {
                       <mat-option [value]="semester">{{ semester }}</mat-option>
                     }
@@ -277,10 +277,10 @@ export class HomeComponent {
       .subscribe({
         next: () => {
           this.laedt.set(false);
-          this.erfolg.set(true);
           this.email = '';
           this.passwort = '';
-          form.resetForm({ startsemester: this.startsemester });
+          form.resetForm({ email: '', passwort: '', startsemester: this.startsemester });
+          this.erfolg.set(true);
         },
         error: (fehler: HttpErrorResponse) => {
           this.laedt.set(false);

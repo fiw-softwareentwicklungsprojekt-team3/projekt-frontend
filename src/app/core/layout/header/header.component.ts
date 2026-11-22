@@ -93,7 +93,7 @@ export class HeaderComponent implements OnInit {
         this.email.set('');
         this.passwort.set('');
         form?.resetForm({ email: '', password: '' });
-        void this.router.navigate([this.authService.startseite()]);      
+        void this.router.navigate([this.authService.startseite()]);
       },
       error: (fehler: HttpErrorResponse) => {
         this.passwort.set('');

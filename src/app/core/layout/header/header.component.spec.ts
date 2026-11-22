@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { HeaderComponent } from './header.component';
 
 /**
@@ -116,6 +116,24 @@ describe('HeaderComponent – E-Mail-Prüfung beim Login', () => {
     const req = httpMock.expectOne('/api/auth/login');
     expect(req.request.body).toEqual({ email: 'name@htw-berlin.de', password: 'geheim123' });
     req.flush({ token: 'abc', expiresIn: 3600, role: 'PROFESSOR_IN' });
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(TestBed.inject(Router).url).toBe('/dashboard');
+    localStorage.clear();
+  });
+
+  it('leitet Studierende nach dem Login in den Modulkatalog', async () => {
+    await formularAusfuellen('name@student.htw-berlin.de');
+
+    anmeldenButton().click();
+
+    httpMock
+      .expectOne('/api/auth/login')
+      .flush({ token: 'abc', expiresIn: 3600, role: 'STUDIERENDE' });
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(TestBed.inject(Router).url).toBe('/modules');
     localStorage.clear();
   });
 

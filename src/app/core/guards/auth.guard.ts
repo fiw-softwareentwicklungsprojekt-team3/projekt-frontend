@@ -25,7 +25,7 @@ export const rolleGuard = (erlaubteRolle: 'STUDIERENDE' | 'PROFESSOR_IN'): CanAc
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  if (authService.getToken() === null) {
+  if (authService.getToken() === null || authService.aktuelleRolle() === null) {
     return router.createUrlTree(['/login']);
   }
   if (authService.aktuelleRolle() === erlaubteRolle) {

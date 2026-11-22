@@ -67,6 +67,12 @@ describe('rolleGuard und startseiteGuard', () => {
     expect(url(pruefe(rolleGuard('PROFESSOR_IN')))).toBe('/login');
   });
 
+  it('sollte trotz Token auf /login leiten, wenn keine Rolle geladen werden konnte', () => {
+    localStorage.setItem(TOKEN_KEY, 'token');
+
+    expect(url(pruefe(rolleGuard('PROFESSOR_IN')))).toBe('/login');
+  });
+
   it('sollte STUDIERENDE auf /dashboard nach /modules umleiten', () => {
     alsAngemeldet('STUDIERENDE');
 
@@ -89,6 +95,10 @@ describe('rolleGuard und startseiteGuard', () => {
     alsAngemeldet('PROFESSOR_IN');
 
     expect(url(pruefe(startseiteGuard))).toBe('/dashboard');
+  });
+
+  it('sollte nicht angemeldete Personen auf der Startseite lassen', () => {
+    expect(pruefe(startseiteGuard)).toBe(true);
   });
 
   it('sollte STUDIERENDE auf der Startseite lassen', () => {

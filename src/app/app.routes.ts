@@ -6,6 +6,7 @@ import { DashboardComponent } from './features/dashboard/dashboard.component';
 import { authGuard, rolleGuard, startseiteGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
+  // /, /login und /register zeigen dieselbe Seite. Angemeldete Lehrende werden ins Dashboard geleitet.
   { path: '', component: HomeComponent, canActivate: [startseiteGuard] },
   { path: 'register', component: HomeComponent, canActivate: [startseiteGuard] },
   { path: 'login', component: HomeComponent, canActivate: [startseiteGuard] },

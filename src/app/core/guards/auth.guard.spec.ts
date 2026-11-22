@@ -67,6 +67,7 @@ describe('rolleGuard und startseiteGuard', () => {
     expect(url(pruefe(rolleGuard('PROFESSOR_IN')))).toBe('/login');
   });
 
+  // Das Token ist noch gespeichert, aber GET /api/me ist beim Start fehlgeschlagen (Rolle bleibt leer).
   it('sollte trotz Token auf /login leiten, wenn keine Rolle geladen werden konnte', () => {
     localStorage.setItem(TOKEN_KEY, 'token');
 
@@ -97,6 +98,7 @@ describe('rolleGuard und startseiteGuard', () => {
     expect(url(pruefe(startseiteGuard))).toBe('/dashboard');
   });
 
+  // Nicht angemeldete Personen sehen auf /, /login und /register das Registrierungsformular.
   it('sollte nicht angemeldete Personen auf der Startseite lassen', () => {
     expect(pruefe(startseiteGuard)).toBe(true);
   });

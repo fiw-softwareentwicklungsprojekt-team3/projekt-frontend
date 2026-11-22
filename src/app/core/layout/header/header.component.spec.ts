@@ -118,10 +118,12 @@ describe('HeaderComponent – E-Mail-Prüfung beim Login', () => {
     req.flush({ token: 'abc', expiresIn: 3600, role: 'PROFESSOR_IN' });
     fixture.detectChanges();
     await fixture.whenStable();
+    // Lehrende landen nach dem Login im Dashboard.
     expect(TestBed.inject(Router).url).toBe('/dashboard');
     localStorage.clear();
   });
 
+  // Studierende landen nach dem Login im Modulkatalog (AuthService.startseite()).
   it('leitet Studierende nach dem Login in den Modulkatalog', async () => {
     await formularAusfuellen('name@student.htw-berlin.de');
 

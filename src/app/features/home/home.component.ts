@@ -398,12 +398,12 @@ export class HomeComponent {
     const anfrage$: Observable<RegisterResponse | ProfessorRegisterResponse> =
       this.modus() === 'LEHRENDE'
         ? this.registrationService.registerProfessor({
-            email: this.email,
+            email: this.email.trim(),
             password: this.passwort,
-            code: this.code,
+            code: this.code.trim(),
           })
         : this.registrationService.register({
-            email: this.email,
+            email: this.email.trim(),
             password: this.passwort,
             startsemester: this.startsemester,
           });

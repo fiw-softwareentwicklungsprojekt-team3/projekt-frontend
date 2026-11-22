@@ -325,7 +325,7 @@ describe('HomeComponent – Professor:innen-Registrierung mit Einladungscode', (
     expect(req.request.body).toEqual({
       email: 'Professorin@HTW-Berlin.de',
       password: 'geheimesPasswort',
-      code: '  k7mpx4qrt9wz ',
+      code: 'k7mpx4qrt9wz',
     });
     req.flush({ id: 42, email: 'professorin@htw-berlin.de', role: 'PROFESSOR_IN' }, { status: 201, statusText: 'Created' });
     fixture.detectChanges();

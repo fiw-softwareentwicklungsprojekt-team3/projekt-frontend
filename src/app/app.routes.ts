@@ -7,8 +7,8 @@ import { authGuard, rolleGuard, startseiteGuard } from './core/guards/auth.guard
 
 export const routes: Routes = [
   { path: '', component: HomeComponent, canActivate: [startseiteGuard] },
-  { path: 'register', component: HomeComponent },
-  { path: 'login', component: HomeComponent },
+  { path: 'register', component: HomeComponent, canActivate: [startseiteGuard] },
+  { path: 'login', component: HomeComponent, canActivate: [startseiteGuard] },
   { path: 'modules', component: ModulesComponent, canActivate: [authGuard] },
   { path: 'plan', component: PlanComponent, canActivate: [rolleGuard('STUDIERENDE')] },
   { path: 'dashboard', component: DashboardComponent, canActivate: [rolleGuard('PROFESSOR_IN')] },

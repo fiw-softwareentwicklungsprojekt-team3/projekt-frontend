@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, ViewChild, inject, signal } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -98,11 +98,11 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
                   } @else if (emailModel.hasError('email')) {
                     <mat-error>Bitte eine gültige E-Mail-Adresse eingeben.</mat-error>
                   } @else if (emailModel.hasError('pattern')) {
-                    @if (modus() === 'LEHRENDE') {
-                      <mat-error>Bitte eine gültige HTW-E-Mail-Adresse (&#64;htw-berlin.de) eingeben.</mat-error>
-                    } @else {
-                      <mat-error>Bitte eine gültige HTW-E-Mail-Adresse (&#64;student.htw-berlin.de) eingeben.</mat-error>
-                    }
+                    <mat-error>{{
+                      modus() === 'LEHRENDE'
+                        ? 'Bitte eine gültige HTW-Lehrenden-Adresse (@htw-berlin.de) eingeben.'
+                        : 'Bitte eine gültige HTW-Studierenden-Adresse (@student.htw-berlin.de) eingeben.'
+                    }}</mat-error>
                   }
                 </mat-form-field>
                 @if (feldFehler()['email']) {
@@ -142,7 +142,7 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
                   <!-- Einladungscode -->
                   <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
                     <mat-label>Einladungscode</mat-label>
-                    <input matInput type="text" [(ngModel)]="code" (focus)="erfolg.set(false)" (ngModelChange)="eingabeGeaendert('code')" #codeModel="ngModel" name="code" required placeholder="Code vom Team eingeben" />
+                    <input matInput type="password" [(ngModel)]="code" (focus)="erfolg.set(false)" (ngModelChange)="eingabeGeaendert('code')" #codeModel="ngModel" name="code" required placeholder="Code vom Team eingeben" />
                     <mat-icon matSuffix>vpn_key</mat-icon>
                     @if (codeModel.hasError('required')) {
                       <mat-error>Einladungscode darf nicht leer sein.</mat-error>
@@ -345,6 +345,7 @@ export class HomeComponent {
   protected startsemester = this.startsemesterOptions.at(-1) ?? '';
 
   private readonly registrationService = inject(RegistrationService);
+  @ViewChild('f') private readonly registerForm?: NgForm;
 
   // Signale, da die Anwendung ohne zone.js läuft.
   protected readonly laedt = signal(false);
@@ -357,9 +358,18 @@ export class HomeComponent {
     return this.modus() === 'LEHRENDE' ? HTW_EMAIL_LEHRENDE : HTW_EMAIL_REGISTRIERUNG;
   }
 
-  /** Wechselt zwischen Studierenden- und Lehrenden-Registrierung und setzt alte Meldungen zurück. */
+  /** Wechselt zwischen Studierenden- und Lehrenden-Registrierung und setzt Formular und Meldungen zurück. */
   protected modusWechseln(neuerModus: RegistrierungsModus): void {
     this.modus.set(neuerModus);
+    this.email = '';
+    this.passwort = '';
+    this.code = '';
+    this.registerForm?.resetForm({
+      email: '',
+      passwort: '',
+      code: '',
+      startsemester: this.startsemester,
+    });
     this.feldFehler.set({});
     this.allgemeinerFehler.set('');
     this.erfolg.set(false);

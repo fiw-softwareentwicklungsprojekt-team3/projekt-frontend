@@ -14,7 +14,7 @@ describe('HomeComponent – E-Mail-Prüfung bei der Registrierung', () => {
   let httpMock: HttpTestingController;
 
   const FORMAT_FEHLER = 'Bitte eine gültige E-Mail-Adresse eingeben.';
-  const DOMAIN_FEHLER = 'Bitte eine gültige HTW-E-Mail-Adresse (@student.htw-berlin.de) eingeben.';
+  const DOMAIN_FEHLER = 'Bitte eine gültige HTW-Studierenden-Adresse (@student.htw-berlin.de) eingeben.';
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -151,7 +151,7 @@ describe('HomeComponent – Professor:innen-Registrierung mit Einladungscode', (
   let httpMock: HttpTestingController;
 
   const LEHRENDE_DOMAIN_FEHLER =
-    'Bitte eine gültige HTW-E-Mail-Adresse (@htw-berlin.de) eingeben.';
+    'Bitte eine gültige HTW-Lehrenden-Adresse (@htw-berlin.de) eingeben.';
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -214,16 +214,37 @@ describe('HomeComponent – Professor:innen-Registrierung mit Einladungscode', (
     return fixture.nativeElement.querySelector('.register-btn') as HTMLButtonElement;
   }
 
-  it('zeigt beim Umschalten auf Lehrende:r das Feld Einladungscode statt Startsemester', async () => {
+  it('zeigt beim Umschalten auf Lehrende:r das maskierte Feld Einladungscode statt Startsemester', async () => {
     expect(fixture.nativeElement.querySelector('mat-select[name="startsemester"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('input[name="code"]')).toBeNull();
 
     await zuModusWechseln('Lehrende:r');
 
     expect(fixture.nativeElement.querySelector('mat-select[name="startsemester"]')).toBeNull();
-    expect(fixture.nativeElement.querySelector('input[name="code"]')).not.toBeNull();
+    const codeFeld = fixture.nativeElement.querySelector('input[name="code"][type="password"]');
+    expect(codeFeld).not.toBeNull();
     expect(modusButton('Lehrende:r').getAttribute('aria-pressed')).toBe('true');
     expect(modusButton('Studierende:r').getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('übernimmt eingegebene Daten (E-Mail, Passwort, Code) nicht in den anderen Modus', async () => {
+    await zuModusWechseln('Lehrende:r');
+    await profFormularAusfuellen('prof@htw-berlin.de', 'K7MPX4QRT9WZ', 'geheimesPasswort');
+
+    await zuModusWechseln('Studierende:r');
+
+    expect((fixture.nativeElement.querySelector('input[name="email"]') as HTMLInputElement).value).toBe('');
+    expect((fixture.nativeElement.querySelector('input[name="passwort"]') as HTMLInputElement).value).toBe('');
+    expect(fehlermeldungen()).toEqual([]);
+
+    await eingeben('email', 'name@student.htw-berlin.de');
+    await eingeben('passwort', 'anderesPasswort');
+    await zuModusWechseln('Lehrende:r');
+
+    expect((fixture.nativeElement.querySelector('input[name="email"]') as HTMLInputElement).value).toBe('');
+    expect((fixture.nativeElement.querySelector('input[name="passwort"]') as HTMLInputElement).value).toBe('');
+    expect((fixture.nativeElement.querySelector('input[name="code"]') as HTMLInputElement).value).toBe('');
+    expect(fehlermeldungen()).toEqual([]);
   });
 
   it('setzt feldFehler, allgemeinerFehler und erfolg beim Moduswechsel zurück', async () => {
@@ -276,11 +297,18 @@ describe('HomeComponent – Professor:innen-Registrierung mit Einladungscode', (
     'name@gmail.com',
     'name@fakehtw-berlin.de',
     'htw-berlin.de@gmail.com',
-  ])('zeigt im Modus Lehrende:r bei falscher Domain (%s) den Hinweis und sperrt den Button', async (email) => {
+  ])('zeigt im Modus Lehrende:r bei falscher Domain (%s) den Hinweis unter dem Feld und sperrt den Button', async (email) => {
     await zuModusWechseln('Lehrende:r');
     await profFormularAusfuellen(email);
 
     expect(fehlermeldungen()).toEqual([LEHRENDE_DOMAIN_FEHLER]);
+    const emailFeld = (
+      fixture.nativeElement.querySelector('input[name="email"]') as HTMLElement
+    ).closest('mat-form-field');
+    expect(emailFeld?.querySelector('.mat-mdc-form-field-infix mat-error')).toBeNull();
+    expect(emailFeld?.querySelector('.mat-mdc-form-field-subscript-wrapper mat-error')?.textContent?.trim()).toBe(
+      LEHRENDE_DOMAIN_FEHLER,
+    );
     expect(registrierenButton().disabled).toBe(true);
   });
 
@@ -310,6 +338,11 @@ describe('HomeComponent – Professor:innen-Registrierung mit Einladungscode', (
     expect((fixture.nativeElement.querySelector('input[name="email"]') as HTMLInputElement).value).toBe('');
     expect((fixture.nativeElement.querySelector('input[name="passwort"]') as HTMLInputElement).value).toBe('');
     expect((fixture.nativeElement.querySelector('input[name="code"]') as HTMLInputElement).value).toBe('');
+
+    const codeFeld = fixture.nativeElement.querySelector('input[name="code"]') as HTMLInputElement;
+    codeFeld.dispatchEvent(new Event('focus'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.erfolg')).toBeNull();
   });
 
   it('zeigt bei ungültigem Einladungscode (400) die Meldung direkt am Code-Feld', async () => {

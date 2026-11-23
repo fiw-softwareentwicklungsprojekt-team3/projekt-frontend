@@ -224,3 +224,14 @@
 .user-email {
   font-size: 0.85rem;
 }
+
+.profile-btn {
+  color: var(--mat-sys-on-primary) !important;
+  border-radius: 20px;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.profile-btn:hover {
+  background: rgba(18, 30, 0, 0.1);
+}

@@ -108,6 +108,11 @@
         <span class="user-email">{{ authService.email() }}</span>
       </div>
 
+      <a routerLink="/profile" mat-button class="profile-btn" title="Mein Profil">
+        <mat-icon>manage_accounts</mat-icon>
+        <span>Profil</span>
+      </a>
+
       <button mat-button (click)="logout()" class="logout-btn" title="Vom System abmelden">
         <mat-icon>logout</mat-icon>
         <span>Logout</span>

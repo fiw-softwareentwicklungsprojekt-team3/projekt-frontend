@@ -3,6 +3,7 @@ import { HomeComponent } from './features/home/home.component';
 import { ModulesComponent } from './features/modules/modules.component';
 import { PlanComponent } from './features/plan/plan.component';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
+import { ProfileComponent } from './features/profile/profile.component';
 import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
@@ -12,5 +13,6 @@ export const routes: Routes = [
   { path: 'modules', component: ModulesComponent, canActivate: [authGuard] },
   { path: 'plan', component: PlanComponent, canActivate: [authGuard] },
   { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard] },
+  { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: '' }
 ];

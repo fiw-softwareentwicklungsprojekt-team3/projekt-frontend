@@ -116,4 +116,100 @@ describe('ProfileComponent', () => {
     expect(fehlerEl).toBeTruthy();
     expect(fehlerEl.textContent).toContain('Startsemester kann nicht geändert werden, da bereits Leistungen vorliegen.');
   });
+
+  it("sollte Feldfehler aus errors[] (400) am Feld statt der allgemeinen message anzeigen", async () => {
+    authService.aktuelleRolle.set("STUDIERENDE");
+    authService.email.set("s12345@student.htw-berlin.de");
+    authService.startSemester.set("WS 2024");
+
+    fixture = TestBed.createComponent(ProfileComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const submitBtn = fixture.nativeElement.querySelector(".speichern-btn") as HTMLButtonElement;
+    submitBtn.click();
+
+    const req = httpMock.expectOne("/api/me");
+    req.flush(
+      {
+        message: "Die Eingabe ist ungültig. Bitte prüfe die markierten Felder.",
+        errors: [{ field: "startSemester", message: "Ungültiges Startsemester" }],
+      },
+      { status: 400, statusText: "Bad Request" },
+    );
+    fixture.detectChanges();
+
+    const fehlerEl = fixture.nativeElement.querySelector(".field-error");
+    expect(fehlerEl).toBeTruthy();
+    expect(fehlerEl.textContent).toContain("Ungültiges Startsemester");
+    expect(fehlerEl.textContent).not.toContain("Die Eingabe ist ungültig");
+  });
+
+  it("sollte bei Status 0 (Server nicht erreichbar) die allgemeine Fehlermeldung anzeigen", async () => {
+    authService.aktuelleRolle.set("STUDIERENDE");
+    authService.email.set("s12345@student.htw-berlin.de");
+    authService.startSemester.set("WS 2024");
+
+    fixture = TestBed.createComponent(ProfileComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const submitBtn = fixture.nativeElement.querySelector(".speichern-btn") as HTMLButtonElement;
+    submitBtn.click();
+
+    const req = httpMock.expectOne("/api/me");
+    req.error(new ProgressEvent("error"), { status: 0, statusText: "Unknown Error" });
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain("Der Server ist gerade nicht erreichbar");
+  });
+
+  it("sollte Feldfehler aus errors[] (400) am Feld statt der allgemeinen message anzeigen", async () => {
+    authService.aktuelleRolle.set("STUDIERENDE");
+    authService.email.set("s12345@student.htw-berlin.de");
+    authService.startSemester.set("WS 2024");
+
+    fixture = TestBed.createComponent(ProfileComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const submitBtn = fixture.nativeElement.querySelector(".speichern-btn") as HTMLButtonElement;
+    submitBtn.click();
+
+    const req = httpMock.expectOne("/api/me");
+    req.flush(
+      {
+        message: "Die Eingabe ist ungültig. Bitte prüfe die markierten Felder.",
+        errors: [{ field: "startSemester", message: "Ungültiges Startsemester" }],
+      },
+      { status: 400, statusText: "Bad Request" },
+    );
+    fixture.detectChanges();
+
+    const fehlerEl = fixture.nativeElement.querySelector(".field-error");
+    expect(fehlerEl).toBeTruthy();
+    expect(fehlerEl.textContent).toContain("Ungültiges Startsemester");
+    expect(fehlerEl.textContent).not.toContain("Die Eingabe ist ungültig");
+  });
+
+  it("sollte bei Status 0 (Server nicht erreichbar) die allgemeine Fehlermeldung anzeigen", async () => {
+    authService.aktuelleRolle.set("STUDIERENDE");
+    authService.email.set("s12345@student.htw-berlin.de");
+    authService.startSemester.set("WS 2024");
+
+    fixture = TestBed.createComponent(ProfileComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const submitBtn = fixture.nativeElement.querySelector(".speichern-btn") as HTMLButtonElement;
+    submitBtn.click();
+
+    const req = httpMock.expectOne("/api/me");
+    req.error(new ProgressEvent("error"), { status: 0, statusText: "Unknown Error" });
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain("Der Server ist gerade nicht erreichbar");
+  });
 });

@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ModuleDto } from '../../core/services/module.service';
 import { PlanResponse } from '../../core/services/plan.service';
 import { PlanComponent } from './plan.component';
 
@@ -15,6 +16,17 @@ describe('PlanComponent', () => {
     maxLpPerSemester: 30,
     semesters: [],
   };
+
+  const modul = (code: string, term: ModuleDto['term']): ModuleDto => ({
+    code,
+    name: `Modul ${code}`,
+    semester: 1,
+    type: 'P',
+    lp: 5,
+    lectureHours: 2,
+    exerciseHours: 2,
+    term,
+  });
 
   /** Beantwortet die beiden Anfragen beim Start der Seite. */
   function startAnfragenBeantworten(plan: PlanResponse): void {
@@ -164,5 +176,47 @@ describe('PlanComponent', () => {
     expect((fixture.nativeElement as HTMLElement).querySelectorAll('.semester-card').length).toBe(
       4,
     );
+  });
+
+  it('sollte nach dem Hinzufügen GET /api/plan neu laden', () => {
+    fixture.detectChanges();
+    startAnfragenBeantworten(leererPlan);
+
+    component.formularOeffnen(component.spalten()[1]); // SS 2027
+    httpMock
+      .expectOne((r) => r.url === '/api/modules' && r.params.get('term') === 'SS')
+      .flush([modul('B21', 'SS')]);
+    component.modulGewaehlt('B21');
+    httpMock.expectOne('/api/modules/B21').flush({ hasChoice: false, offers: [] });
+
+    component.einplanen();
+    const post = httpMock.expectOne('/api/plan/entries');
+    expect(post.request.body.semester).toBe('SS 2027');
+    post.flush({ id: 3 });
+
+    httpMock.expectOne('/api/plan').flush(leererPlan);
+  });
+
+  it('sollte die message des Backends zeigen, wenn Hinzufügen abgelehnt wird', () => {
+    fixture.detectChanges();
+    startAnfragenBeantworten(leererPlan);
+
+    component.formularOeffnen(component.spalten()[0]); // WS 2026
+    httpMock
+      .expectOne((r) => r.url === '/api/modules' && r.params.get('term') === 'WS')
+      .flush([modul('B11', 'WS')]);
+    component.modulGewaehlt('B11');
+    httpMock.expectOne('/api/modules/B11').flush({ hasChoice: false, offers: [] });
+
+    component.einplanen();
+    httpMock
+      .expectOne('/api/plan/entries')
+      .flush(
+        { message: 'Das Modul B11 ist bereits im Plan eingeplant.' },
+        { status: 409, statusText: 'Conflict' },
+      );
+    fixture.detectChanges();
+
+    expect(text()).toContain('Das Modul B11 ist bereits im Plan eingeplant.');
   });
 });

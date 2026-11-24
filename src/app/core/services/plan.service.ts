@@ -37,6 +37,10 @@ export interface PlanSemesterDto {
   /** Plansemester als "WS JJJJ" oder "SS JJJJ". */
   semester: string;
   lp: number;
+  /** Summe der SWS (Vorlesung + Übung), null aus dem Backend wird bereits als 0 geliefert. */
+  sws: number;
+  /** true, wenn die LP-Summe dieses Semesters das konfigurierte Limit überschreitet. */
+  lpLimitExceeded: boolean;
   entries: PlanEntryDto[];
 }
 
@@ -47,6 +51,7 @@ export interface PlanSemesterDto {
 export interface PlanResponse {
   startSemester: string;
   totalLp: number;
+  maxLpPerSemester: number;
   semesters: PlanSemesterDto[];
 }
 

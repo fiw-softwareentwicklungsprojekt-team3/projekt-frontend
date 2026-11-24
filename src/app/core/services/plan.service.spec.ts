@@ -11,10 +11,13 @@ describe('PlanService', () => {
   const beispielPlan: PlanResponse = {
     startSemester: 'WS 2026',
     totalLp: 14,
+    maxLpPerSemester: 30,
     semesters: [
       {
         semester: 'WS 2026',
         lp: 4,
+        sws: 4,
+        lpLimitExceeded: false,
         entries: [
           {
             id: 1,
@@ -34,6 +37,8 @@ describe('PlanService', () => {
       {
         semester: 'WS 2027',
         lp: 10,
+        sws: 6,
+        lpLimitExceeded: false,
         entries: [
           {
             id: 2,
@@ -88,7 +93,12 @@ describe('PlanService', () => {
     let antwort: PlanResponse | undefined;
     service.getPlan().subscribe((plan) => (antwort = plan));
 
-    httpMock.expectOne('/api/plan').flush({ startSemester: 'WS 2026', totalLp: 0, semesters: [] });
+    httpMock.expectOne('/api/plan').flush({
+      startSemester: 'WS 2026',
+      totalLp: 0,
+      maxLpPerSemester: 30,
+      semesters: [],
+    });
 
     expect(antwort?.semesters).toEqual([]);
     expect(antwort?.totalLp).toBe(0);

@@ -103,4 +103,38 @@ describe('PlanService', () => {
     expect(antwort?.semesters).toEqual([]);
     expect(antwort?.totalLp).toBe(0);
   });
+
+  it('sollte über POST /api/plan/entries einplanen und leere Felder als null senden', () => {
+    service
+      .addEntry({ moduleCode: 'B11', semester: 'WS 2026', offerCode: '', courseCode: '  ' })
+      .subscribe();
+
+    const req = httpMock.expectOne('/api/plan/entries');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({
+      moduleCode: 'B11',
+      semester: 'WS 2026',
+      offerCode: null,
+      courseCode: null,
+      courseTitle: null,
+    });
+    req.flush({});
+  });
+
+  it('sollte über PUT /api/plan/entries/{id} verschieben', () => {
+    service.updateEntry(5, { moduleCode: 'B34', semester: 'WS 2028' }).subscribe();
+
+    const req = httpMock.expectOne('/api/plan/entries/5');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body.semester).toBe('WS 2028');
+    req.flush({});
+  });
+
+  it('sollte über DELETE /api/plan/entries/{id} entfernen', () => {
+    service.deleteEntry(5).subscribe();
+
+    const req = httpMock.expectOne('/api/plan/entries/5');
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null, { status: 204, statusText: 'No Content' });
+  });
 });

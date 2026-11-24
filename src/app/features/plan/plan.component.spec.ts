@@ -28,10 +28,11 @@ describe('PlanComponent', () => {
     term,
   });
 
-  /** Beantwortet die beiden Anfragen beim Start der Seite. */
+  /** Beantwortet die drei Anfragen beim Start der Seite. */
   function startAnfragenBeantworten(plan: PlanResponse): void {
     httpMock.expectOne('/api/plan').flush(plan);
     httpMock.expectOne('/api/results').flush([]);
+    httpMock.expectOne((r) => r.url === '/api/modules' && r.params.keys().length === 0).flush([]);
     fixture.detectChanges();
   }
 
@@ -153,6 +154,7 @@ describe('PlanComponent', () => {
       );
     // forkJoin hat sich nach dem Fehler abgemeldet; die übrigen Anfragen nur noch abräumen.
     httpMock.match('/api/results');
+    httpMock.match((r) => r.url === '/api/modules');
     fixture.detectChanges();
 
     expect(text()).toContain('Der Studienplan konnte nicht geladen werden.');

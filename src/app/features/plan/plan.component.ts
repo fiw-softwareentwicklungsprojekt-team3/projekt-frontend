@@ -16,7 +16,7 @@ import {
   PlanService,
 } from '../../core/services/plan.service';
 import { ResultService } from '../../core/services/result.service';
-import { SemesterArt, parseSemester, semesterSpalten } from '../../core/semester/semester';
+import { SemesterArt, Turnus, parseSemester, semesterSpalten } from '../../core/semester/semester';
 import { PlanEntryComponent } from './plan-entry.component';
 
 /** Eine angezeigte Semesterspalte, auch für Semester ohne Einträge. */
@@ -38,10 +38,11 @@ export interface SemesterSpalte {
  * Datenquellen:
  * - GET /api/plan: Plan nach Semestern gruppiert (nur Semester mit Einträgen, Lücken füllt semesterSpalten)
  * - GET /api/results: bestandene Module markieren und aus der Auswahl nehmen
+ * - GET /api/modules: Turnus pro Modul für die Verschiebe-Auswahl
  * - GET /api/modules?term=WS|SS: Modulauswahl einer Spalte
  * - GET /api/modules/{code}: Angebote (offers) eines Moduls mit Auswahl
  *
- * Nach jedem Hinzufügen wird GET /api/plan neu geladen,
+ * Nach jedem Hinzufügen, Verschieben und Entfernen wird GET /api/plan neu geladen,
  * damit LP-Summen und Verstöße immer vom Backend kommen.
  */
 @Component({
@@ -130,7 +131,13 @@ export interface SemesterSpalte {
                 @for (eintrag of spalte.entries; track eintrag.id) {
                   <app-plan-entry
                     [eintrag]="eintrag"
+                    [semester]="spalte.semester"
+                    [spalten]="spaltenNamen()"
+                    [turnus]="turnusVon().get(eintrag.moduleCode) ?? null"
                     [bestanden]="bestanden().has(eintrag.moduleCode)"
+                    [gesperrt]="beschaeftigt()"
+                    (verschieben)="verschieben(eintrag, $event)"
+                    (entfernen)="entfernen(eintrag)"
                   />
                 }
               </div>
@@ -371,6 +378,8 @@ export class PlanComponent implements OnInit {
   protected readonly beschaeftigt = signal(false);
   /** Codes aller Module mit Status BESTANDEN. */
   protected readonly bestanden = signal<ReadonlySet<string>>(new Set());
+  /** Turnus pro Modulcode aus dem ganzen Katalog. */
+  protected readonly turnusVon = signal<ReadonlyMap<string, Turnus>>(new Map());
 
   // --- Formular „Modul hinzufügen“ (immer nur in einer Spalte offen) ---
   protected readonly offeneSpalte = signal<string | null>(null);
@@ -428,17 +437,19 @@ export class PlanComponent implements OnInit {
     this.laden();
   }
 
-  /** Lädt Plan und Leistungen. Nur ein Fehler beim Plan blockiert die Seite. */
+  /** Lädt Plan, Leistungen und Katalog. Nur ein Fehler beim Plan blockiert die Seite. */
   private laden(): void {
     forkJoin({
       plan: this.planService.getPlan(),
       results: this.resultService.getResults().pipe(catchError(() => of([]))),
+      katalog: this.moduleService.getModules().pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ plan, results }) => {
+      next: ({ plan, results, katalog }) => {
         this.plan.set(plan);
         this.bestanden.set(
           new Set(results.filter((r) => r.status === 'BESTANDEN').map((r) => r.moduleCode)),
         );
+        this.turnusVon.set(new Map(katalog.map((m) => [m.code, m.term])));
         this.laedt.set(false);
       },
       error: (fehler) => {
@@ -517,6 +528,25 @@ export class PlanComponent implements OnInit {
       courseTitle: this.courseTitle(),
     };
     this.aktionAusfuehren(this.planService.addEntry(request), () => this.formularZuruecksetzen());
+  }
+
+  // --- Verschieben und Entfernen ---
+
+  verschieben(eintrag: PlanEntryDto, zielSemester: string): void {
+    // Gleicher Body wie POST; Angebot und Veranstaltung bleiben erhalten.
+    this.aktionAusfuehren(
+      this.planService.updateEntry(eintrag.id, {
+        moduleCode: eintrag.moduleCode,
+        semester: zielSemester,
+        offerCode: eintrag.offerCode,
+        courseCode: eintrag.courseCode,
+        courseTitle: eintrag.courseTitle,
+      }),
+    );
+  }
+
+  entfernen(eintrag: PlanEntryDto): void {
+    this.aktionAusfuehren(this.planService.deleteEntry(eintrag.id));
   }
 
   /**

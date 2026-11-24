@@ -1,15 +1,20 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, output, signal } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSelectModule } from '@angular/material/select';
 import { PlanEntryDto } from '../../core/services/plan.service';
+import { Turnus, passtZumTurnus } from '../../core/semester/semester';
 
 /**
  * Ein Modul in einer Semesterspalte (US-40): Name, LP, gewähltes Angebot,
- * bestanden-Markierung und Verstöße.
+ * bestanden-Markierung, Verstöße, Verschieben und Entfernen mit Bestätigung.
+ * Die Komponente ruft selbst keine API auf, sondern meldet Aktionen an die Seite.
  */
 @Component({
   selector: 'app-plan-entry',
   standalone: true,
-  imports: [MatIconModule],
+  imports: [MatButtonModule, MatFormFieldModule, MatIconModule, MatSelectModule],
   template: `
     <article
       class="eintrag"
@@ -41,6 +46,42 @@ import { PlanEntryDto } from '../../core/services/plan.service';
             </li>
           }
         </ul>
+      }
+
+      @if (bestaetigen()) {
+        <div class="bestaetigung" role="alertdialog" aria-label="Entfernen bestätigen">
+          <span>{{ eintrag().moduleCode }} wirklich aus dem Plan entfernen?</span>
+          <button mat-flat-button type="button" class="ja" (click)="entfernenBestaetigt()">
+            Entfernen
+          </button>
+          <button mat-button type="button" (click)="bestaetigen.set(false)">Abbrechen</button>
+        </div>
+      } @else {
+        <div class="aktionen">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="verschieben">
+            <mat-label>Verschieben nach</mat-label>
+            <mat-select
+              [value]="null"
+              [disabled]="gesperrt() || zielSemester().length === 0"
+              (selectionChange)="zielGewaehlt($event.value)"
+              [attr.aria-label]="eintrag().moduleCode + ' verschieben'"
+            >
+              @for (s of zielSemester(); track s) {
+                <mat-option [value]="s">{{ s }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <button
+            mat-icon-button
+            type="button"
+            [disabled]="gesperrt()"
+            (click)="bestaetigen.set(true)"
+            [attr.aria-label]="eintrag().moduleCode + ' entfernen'"
+            title="Aus dem Plan entfernen"
+          >
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
       }
     </article>
   `,
@@ -128,12 +169,52 @@ import { PlanEntryDto } from '../../core/services/plan.service';
       .verstoss--HINWEIS .schwere {
         color: #005c94;
       }
+      .aktionen,
+      .bestaetigung {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        margin-top: 0.25rem;
+      }
+      .verschieben {
+        flex: 1;
+        min-width: 0;
+      }
+      .bestaetigung {
+        flex-wrap: wrap;
+        font-size: 0.85rem;
+      }
+      .bestaetigung .ja {
+        background: var(--status-gesperrt);
+        color: white;
+      }
     `,
   ],
 })
 export class PlanEntryComponent {
   readonly eintrag = input.required<PlanEntryDto>();
+  /** Plansemester, in dem der Eintrag steht. */
+  readonly semester = input.required<string>();
+  /** Alle angezeigten Semesterspalten, Grundlage für die Verschiebe-Auswahl. */
+  readonly spalten = input.required<string[]>();
+  /** Turnus aus dem Katalog; null, wenn unbekannt (dann sind alle Semester erlaubt). */
+  readonly turnus = input<Turnus | null>(null);
   readonly bestanden = input(false);
+  /** true, solange eine Aktion läuft; sperrt die Bedienelemente. */
+  readonly gesperrt = input(false);
+
+  readonly verschieben = output<string>();
+  readonly entfernen = output<void>();
+
+  /** true, solange die Rückfrage „Wirklich entfernen?“ sichtbar ist. */
+  readonly bestaetigen = signal(false);
+
+  /** Nur Semester mit passendem Turnus, ohne das aktuelle. */
+  readonly zielSemester = computed(() => {
+    const turnus = this.turnus() ?? 'BEIDE';
+    return this.spalten().filter((s) => s !== this.semester() && passtZumTurnus(turnus, s));
+  });
+
   /** Angebot oder freie Veranstaltung als eine Zeile, oder null. */
   readonly auswahlText = computed(() => {
     const e = this.eintrag();
@@ -145,4 +226,15 @@ export class PlanEntryComponent {
     }
     return null;
   });
+
+  zielGewaehlt(ziel: string | null): void {
+    if (ziel) {
+      this.verschieben.emit(ziel);
+    }
+  }
+
+  entfernenBestaetigt(): void {
+    this.bestaetigen.set(false);
+    this.entfernen.emit();
+  }
 }

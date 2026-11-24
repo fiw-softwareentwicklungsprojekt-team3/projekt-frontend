@@ -66,4 +66,55 @@ describe('RegistrationService', () => {
       { status: 400, statusText: 'Bad Request' },
     );
   });
+
+  describe('registerProfessor', () => {
+    const profAnfrage = {
+      email: 'prof@htw-berlin.de',
+      password: 'geheimesPasswort',
+      code: 'K7MPX4QRT9WZ',
+    };
+
+    it('sollte bei Erfolg (201) das angelegte Lehrenden-Konto liefern', () => {
+      service.registerProfessor(profAnfrage).subscribe((res) => {
+        expect(res).toEqual({
+          id: 42,
+          email: 'prof@htw-berlin.de',
+          role: 'PROFESSOR_IN',
+        });
+      });
+
+      const req = httpMock.expectOne('/api/auth/register/professor');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual(profAnfrage);
+      req.flush({ id: 42, email: 'prof@htw-berlin.de', role: 'PROFESSOR_IN' }, { status: 201, statusText: 'Created' });
+    });
+
+    it('sollte bei ungültigem Einladungscode (400) den Feldfehler für code liefern', () => {
+      service.registerProfessor(profAnfrage).subscribe({
+        error: (e) => {
+          expect(e.status).toBe(400);
+          expect(e.error.errors).toEqual([{ field: 'code', message: 'Der Einladungscode ist ungültig.' }]);
+        },
+      });
+
+      httpMock.expectOne('/api/auth/register/professor').flush(
+        {
+          message: 'Der Einladungscode ist ungültig.',
+          errors: [{ field: 'code', message: 'Der Einladungscode ist ungültig.' }],
+        },
+        { status: 400, statusText: 'Bad Request' },
+      );
+    });
+
+    it('sollte bei vergebener E-Mail (409) den Status liefern', () => {
+      service.registerProfessor(profAnfrage).subscribe({
+        error: (e) => expect(e.status).toBe(409),
+      });
+
+      httpMock.expectOne('/api/auth/register/professor').flush(
+        { message: 'Diese E-Mail-Adresse ist bereits vergeben.' },
+        { status: 409, statusText: 'Conflict' },
+      );
+    });
+  });
 });

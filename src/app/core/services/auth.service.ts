@@ -38,6 +38,8 @@ export class AuthService {
   readonly aktuelleRolle = signal<Rolle>(null);
   /** E-Mail-Adresse der angemeldeten Person. */
   readonly email = signal<string>('');
+  /** Startsemester der angemeldeten Studierenden; bei PROFESSOR_IN und abgemeldet null. */
+  readonly startSemester = signal<string | null>(null);
   /** true, solange der Hinweis "Sitzung abgelaufen" angezeigt werden soll. */
   readonly sitzungAbgelaufen = signal<boolean>(false);
 
@@ -75,6 +77,7 @@ export class AuthService {
     localStorage.removeItem(TOKEN_KEY);
     this.aktuelleRolle.set(null);
     this.email.set('');
+    this.startSemester.set(null);
   }
 
   /** Wird bei einer 401-Antwort aufgerufen: meldet ab, zeigt den Hinweis und geht zu /login. */
@@ -107,6 +110,7 @@ export class AuthService {
         tap((antwort) => {
           this.aktuelleRolle.set(antwort.role);
           this.email.set(antwort.email);
+          this.startSemester.set(antwort.startSemester ?? null);
         }),
         // Fehler (401, Server nicht erreichbar, Timeout): Die Person bleibt abgemeldet,
         // die App startet trotzdem.

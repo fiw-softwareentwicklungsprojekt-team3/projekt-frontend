@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, ViewChild, inject, signal } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -7,11 +7,20 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { Observable } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
-import { ApiFehler, RegistrationService } from '../../core/services/registration.service';
-import { HTW_EMAIL_REGISTRIERUNG } from '../../core/validation/htw-email';
+import {
+  ApiFehler,
+  ProfessorRegisterResponse,
+  RegisterResponse,
+  RegistrationService,
+} from '../../core/services/registration.service';
+import { HTW_EMAIL_LEHRENDE, HTW_EMAIL_REGISTRIERUNG } from '../../core/validation/htw-email';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ModulesComponent } from '../modules/modules.component';
+
+/** Kontotyp, für den die Registrierung ausgeführt wird. */
+export type RegistrierungsModus = 'STUDIERENDE' | 'LEHRENDE';
 
 /**
  * Liefert die letzten Wintersemester, z. B. ["WS 2021", ..., "WS 2026"].
@@ -55,18 +64,45 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
             </mat-card-header>
 
             <mat-card-content class="card-body">
+              <div class="modus-umschalter" role="group" aria-label="Kontotyp wählen">
+                <button
+                  type="button"
+                  class="modus-btn"
+                  [class.modus-btn--aktiv]="modus() === 'STUDIERENDE'"
+                  [attr.aria-pressed]="modus() === 'STUDIERENDE'"
+                  (click)="modusWechseln('STUDIERENDE')"
+                >
+                  <mat-icon>school</mat-icon>
+                  <span>Studierende:r</span>
+                </button>
+                <button
+                  type="button"
+                  class="modus-btn"
+                  [class.modus-btn--aktiv]="modus() === 'LEHRENDE'"
+                  [attr.aria-pressed]="modus() === 'LEHRENDE'"
+                  (click)="modusWechseln('LEHRENDE')"
+                >
+                  <mat-icon>psychology</mat-icon>
+                  <span>Lehrende:r</span>
+                </button>
+              </div>
+
               <form class="register-form" #f="ngForm" (submit)="$event.preventDefault()">
                 <!-- E-Mail -->
                 <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
                   <mat-label>HTW E-Mail-Adresse</mat-label>
-                  <input matInput type="email" [(ngModel)]="email" (ngModelChange)="eingabeGeaendert('email')" #emailModel="ngModel" name="email" required email [pattern]="htwEmailMuster" placeholder="name@student.htw-berlin.de" />
+                  <input matInput type="email" [(ngModel)]="email" (focus)="erfolg.set(false)" (ngModelChange)="eingabeGeaendert('email')" #emailModel="ngModel" name="email" required email [pattern]="htwEmailMuster" [placeholder]="modus() === 'LEHRENDE' ? 'name@htw-berlin.de' : 'name@student.htw-berlin.de'" />
                   <mat-icon matSuffix>email</mat-icon>
                   @if (emailModel.hasError('required')) {
                     <mat-error>E-Mail-Adresse darf nicht leer sein.</mat-error>
                   } @else if (emailModel.hasError('email')) {
                     <mat-error>Bitte eine gültige E-Mail-Adresse eingeben.</mat-error>
                   } @else if (emailModel.hasError('pattern')) {
-                    <mat-error>Bitte eine gültige HTW-E-Mail-Adresse (&#64;student.htw-berlin.de) eingeben.</mat-error>
+                    <mat-error>{{
+                      modus() === 'LEHRENDE'
+                        ? 'Bitte eine gültige HTW-Lehrenden-Adresse (@htw-berlin.de) eingeben.'
+                        : 'Bitte eine gültige HTW-Studierenden-Adresse (@student.htw-berlin.de) eingeben.'
+                    }}</mat-error>
                   }
                 </mat-form-field>
                 @if (feldFehler()['email']) {
@@ -76,7 +112,7 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
                 <!-- Passwort -->
                 <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
                   <mat-label>Passwort wählen</mat-label>
-                  <input matInput type="password" [(ngModel)]="passwort" (ngModelChange)="eingabeGeaendert('password')" #passwortModel="ngModel" name="passwort" required minlength="8" placeholder="Mindestens 8 Zeichen" />
+                  <input matInput type="password" [(ngModel)]="passwort" (focus)="erfolg.set(false)" (ngModelChange)="eingabeGeaendert('password')" #passwortModel="ngModel" name="passwort" required minlength="8" placeholder="Mindestens 8 Zeichen" />
                   <mat-icon matSuffix>lock</mat-icon>
                   @if (passwortModel.hasError('required')) {
                     <mat-error>Passwort darf nicht leer sein.</mat-error>
@@ -88,18 +124,33 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
                   <div class="fehler">{{ feldFehler()['password'] }}</div>
                 }
 
-                <!-- Startsemester -->
-                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
-                  <mat-label>Startsemester</mat-label>
-                  <mat-select [(ngModel)]="startsemester" (ngModelChange)="eingabeGeaendert('startsemester')" name="startsemester" required>
-                    @for (semester of startsemesterOptions; track semester) {
-                      <mat-option [value]="semester">{{ semester }}</mat-option>
+                @if (modus() === 'STUDIERENDE') {
+                  <!-- Startsemester -->
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
+                    <mat-label>Startsemester</mat-label>
+                    <mat-select [(ngModel)]="startsemester" (focus)="erfolg.set(false)" (ngModelChange)="eingabeGeaendert('startsemester')" name="startsemester" required>
+                      @for (semester of startsemesterOptions; track semester) {
+                        <mat-option [value]="semester">{{ semester }}</mat-option>
+                      }
+                    </mat-select>
+                    <mat-icon matSuffix>event</mat-icon>
+                  </mat-form-field>
+                  @if (feldFehler()['startsemester']) {
+                    <div class="fehler">{{ feldFehler()['startsemester'] }}</div>
+                  }
+                } @else {
+                  <!-- Einladungscode -->
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="full-width">
+                    <mat-label>Einladungscode</mat-label>
+                    <input matInput type="password" [(ngModel)]="code" (focus)="erfolg.set(false)" (ngModelChange)="eingabeGeaendert('code')" #codeModel="ngModel" name="code" required placeholder="Code vom Team eingeben" />
+                    <mat-icon matSuffix>vpn_key</mat-icon>
+                    @if (codeModel.hasError('required')) {
+                      <mat-error>Einladungscode darf nicht leer sein.</mat-error>
                     }
-                  </mat-select>
-                  <mat-icon matSuffix>event</mat-icon>
-                </mat-form-field>
-                @if (feldFehler()['startsemester']) {
-                  <div class="fehler">{{ feldFehler()['startsemester'] }}</div>
+                  </mat-form-field>
+                  @if (feldFehler()['code']) {
+                    <div class="fehler">{{ feldFehler()['code'] }}</div>
+                  }
                 }
 
                 <!-- Registrieren-Button -->
@@ -175,6 +226,55 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
       padding: 1rem 1.5rem 1.5rem 1.5rem;
     }
 
+    .modus-umschalter {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      padding: 0.25rem;
+      margin-bottom: 1.25rem;
+      border-radius: 10px;
+      background: #f1f3f5;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .modus-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      padding: 0.55rem 0.75rem;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--status-offen);
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .modus-btn mat-icon {
+      font-size: 1.15rem;
+      width: 1.15rem;
+      height: 1.15rem;
+    }
+
+    .modus-btn:hover {
+      color: #1f2937;
+    }
+
+    .modus-btn:focus-visible {
+      outline: 2px solid var(--htw-green-dark);
+      outline-offset: 2px;
+    }
+
+    .modus-btn--aktiv {
+      background: #ffffff;
+      color: var(--htw-green-dark);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    }
+
     /* Die Felder reservieren keinen festen Platz für Fehlermeldungen (subscriptSizing="dynamic").
        Der Abstand zwischen den Feldern kommt deshalb von hier. Lange Meldungen dürfen umbrechen
        und schieben die nächsten Felder nach unten, statt sie zu überdecken. */
@@ -236,21 +336,44 @@ export class HomeComponent {
   protected readonly authService = inject(AuthService);
 
   // Formularfelder für die Registrierung:
+  protected readonly modus = signal<RegistrierungsModus>('STUDIERENDE');
   protected email = '';
   protected passwort = '';
-  // Erlaubt bei der Registrierung nur @student.htw-berlin.de (zweite Prüfung nach "email").
-  protected readonly htwEmailMuster = HTW_EMAIL_REGISTRIERUNG;
+  protected code = '';
   // Reihenfolge beachten: Der Startwert nutzt die Liste.
   protected readonly startsemesterOptions = letzteWintersemester();
   protected startsemester = this.startsemesterOptions.at(-1) ?? '';
 
   private readonly registrationService = inject(RegistrationService);
+  @ViewChild('f') private readonly registerForm?: NgForm;
 
   // Signale, da die Anwendung ohne zone.js läuft.
   protected readonly laedt = signal(false);
   protected readonly erfolg = signal(false);
   protected readonly feldFehler = signal<Record<string, string>>({});
   protected readonly allgemeinerFehler = signal('');
+
+  /** Erlaubtes E-Mail-Muster abhängig vom gewählten Registrierungsmodus (zweite Prüfung nach "email"). */
+  protected get htwEmailMuster(): RegExp {
+    return this.modus() === 'LEHRENDE' ? HTW_EMAIL_LEHRENDE : HTW_EMAIL_REGISTRIERUNG;
+  }
+
+  /** Wechselt zwischen Studierenden- und Lehrenden-Registrierung und setzt Formular und Meldungen zurück. */
+  protected modusWechseln(neuerModus: RegistrierungsModus): void {
+    this.modus.set(neuerModus);
+    this.email = '';
+    this.passwort = '';
+    this.code = '';
+    this.registerForm?.resetForm({
+      email: '',
+      passwort: '',
+      code: '',
+      startsemester: this.startsemester,
+    });
+    this.feldFehler.set({});
+    this.allgemeinerFehler.set('');
+    this.erfolg.set(false);
+  }
 
   /** Setzt alte Meldungen zurück, sobald eine Eingabe geändert wird. */
   protected eingabeGeaendert(feld: string): void {
@@ -272,21 +395,35 @@ export class HomeComponent {
     this.feldFehler.set({});
     this.allgemeinerFehler.set('');
 
-    this.registrationService
-      .register({ email: this.email, password: this.passwort, startsemester: this.startsemester })
-      .subscribe({
-        next: () => {
-          this.laedt.set(false);
-          this.erfolg.set(true);
-          this.email = '';
-          this.passwort = '';
-          form.resetForm({ startsemester: this.startsemester });
-        },
-        error: (fehler: HttpErrorResponse) => {
-          this.laedt.set(false);
-          this.fehlerZuordnen(fehler);
-        }
-      });
+    const anfrage$: Observable<RegisterResponse | ProfessorRegisterResponse> =
+      this.modus() === 'LEHRENDE'
+        ? this.registrationService.registerProfessor({
+            email: this.email.trim(),
+            password: this.passwort,
+            code: this.code.trim(),
+          })
+        : this.registrationService.register({
+            email: this.email.trim(),
+            password: this.passwort,
+            startsemester: this.startsemester,
+          });
+
+    anfrage$.subscribe({
+      next: () => {
+        this.laedt.set(false);
+        form.resetForm(
+          this.modus() === 'STUDIERENDE'
+            ? { email: '', passwort: '', startsemester: this.startsemester }
+            : { email: '', passwort: '', code: '' },
+        );
+        // Erst nach resetForm setzen, da resetForm synchron ngModelChange auslöst und erfolg zurücksetzt.
+        this.erfolg.set(true);
+      },
+      error: (fehler: HttpErrorResponse) => {
+        this.laedt.set(false);
+        this.fehlerZuordnen(fehler);
+      },
+    });
   }
 
   /**

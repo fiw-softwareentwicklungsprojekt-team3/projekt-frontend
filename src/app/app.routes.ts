@@ -3,7 +3,12 @@ import { HomeComponent } from './features/home/home.component';
 import { ModulesComponent } from './features/modules/modules.component';
 import { PlanComponent } from './features/plan/plan.component';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
+ feature/US-52-rollenbasierter-route-guard
 import { authGuard, rolleGuard, startseiteGuard } from './core/guards/auth.guard';
+
+import { ProfileComponent } from './features/profile/profile.component';
+import { authGuard } from './core/guards/auth.guard';
+
 
 export const routes: Routes = [
   // /, /login und /register zeigen dieselbe Seite. Angemeldete Lehrende werden ins Dashboard geleitet.
@@ -11,7 +16,13 @@ export const routes: Routes = [
   { path: 'register', component: HomeComponent, canActivate: [startseiteGuard] },
   { path: 'login', component: HomeComponent, canActivate: [startseiteGuard] },
   { path: 'modules', component: ModulesComponent, canActivate: [authGuard] },
+ feature/US-52-rollenbasierter-route-guard
   { path: 'plan', component: PlanComponent, canActivate: [rolleGuard('STUDIERENDE')] },
   { path: 'dashboard', component: DashboardComponent, canActivate: [rolleGuard('PROFESSOR_IN')] },
+
+  { path: 'plan', component: PlanComponent, canActivate: [authGuard] },
+  { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard] },
+  { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
+ 
   { path: '**', redirectTo: '' }
 ];

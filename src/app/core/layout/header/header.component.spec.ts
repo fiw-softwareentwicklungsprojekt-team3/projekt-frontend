@@ -136,6 +136,9 @@ describe('HeaderComponent – E-Mail-Prüfung beim Login', () => {
     await fixture.whenStable();
 
     expect(TestBed.inject(Router).url).toBe('/modules');
+    req.flush({ token: 'abc', expiresIn: 3600, role: 'PROFESSOR_IN' });
+    await fixture.whenStable();
+    expect(TestBed.inject(Router).url).toBe('/dashboard');
     localStorage.clear();
   });
 

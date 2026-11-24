@@ -357,12 +357,23 @@ export interface SemesterSpalte {
         align-items: center;
         gap: 0.5rem;
       }
-      .plus {
+       .plus {
         width: 100%;
+      }
+      @media (max-width: 600px) {
+        .semester-liste {
+          flex-direction: column;
+          align-items: stretch;
+          overflow-x: visible;
+        }
+        .semester-card {
+          flex: 1 1 auto;
+        }
       }
     `,
   ],
 })
+
 export class PlanComponent implements OnInit {
   private readonly planService = inject(PlanService);
   private readonly moduleService = inject(ModuleService);

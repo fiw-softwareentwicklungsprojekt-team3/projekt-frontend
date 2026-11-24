@@ -27,6 +27,16 @@ export interface PrerequisiteDto {
   toleranceLp?: number;
 }
 
+/** Wählbares Angebot eines Moduls mit Auswahl (OfferDto, z. B. WP7 oder EN_B2.1). */
+export interface OfferDto {
+  code: string;
+  name: string;
+  group: 'WP' | 'SPRACHE';
+  level: string | null;
+  sws: number | null;
+  recommendedModuleCode: string | null;
+}
+
 /** Detaildaten eines Moduls inklusive Voraussetzungen (GET /api/modules/{code}). */
 export interface ModuleDetailDto {
   code: string;
@@ -43,6 +53,8 @@ export interface ModuleDetailDto {
   countsForFinalGrade: boolean;
   graded: boolean;
   prerequisites: PrerequisiteDto[];
+  /** Wählbare Angebote (nur B16, B26, B41, B54); sonst leer. Optional für ältere Tests. */
+  offers?: OfferDto[];
 }
 
 /** Optionale Filterparameter für GET /api/modules. */

@@ -1,4 +1,5 @@
 @use '@angular/material' as mat;
+@use 'styles/breakpoints' as bp;
 
 html {
   @include mat.theme((
@@ -40,4 +41,19 @@ html, body {
   --status-warnung: #FF5F00;       // Orange für Warnung / Frist
   --status-gesperrt: #d32f2f;      // Rot für gesperrt / nicht bestanden
   --status-offen: #757575;         // Grau für offen / noch nicht belegt
+
+  // Zentrale Breakpoints (Referenzwerte; SCSS-Mixins in src/styles/_breakpoints.scss,
+  // Media-Queries für BreakpointObserver in src/app/core/layout/breakpoints.ts):
+  --bp-mobile: #{bp.$bp-mobile};
+  --bp-tablet: #{bp.$bp-tablet};
+  --bp-desktop: #{bp.$bp-desktop};
+}
+
+.login-menu-panel.mat-mdc-menu-panel {
+  max-width: calc(100vw - 16px);
+}
+
+.mobile-nav-menu-panel.mat-mdc-menu-panel {
+  min-width: 220px;
+  max-width: calc(100vw - 16px);
 }

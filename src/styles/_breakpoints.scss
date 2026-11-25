@@ -1,0 +1,36 @@
+// Zentrale Breakpoints der Anwendung (angelehnt an Angular Material / CDK):
+// - Mobil (schmal):            < 600 px           (max-width: 599.98px)  – z. B. iPhone SE (375 px)
+// - Tablet (mittel):           600 px – 959,98 px                         – kompakte Header-Navigation
+// - Kompakter Desktop:         960 px – 1279,98 px                        – Header ohne E-Mail / Status-Text
+// - Breiter Desktop:           >= 1280 px                                 – vollständiger Header
+$bp-mobile: 600px;
+$bp-tablet: 960px;
+$bp-desktop: 1280px;
+
+$bp-mobile-max: 599.98px;
+$bp-tablet-max: 959.98px;
+$bp-desktop-max: 1279.98px;
+
+@mixin mobile {
+  @media (max-width: #{$bp-mobile-max}) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (min-width: #{$bp-mobile}) and (max-width: #{$bp-tablet-max}) {
+    @content;
+  }
+}
+
+@mixin below-desktop {
+  @media (max-width: #{$bp-desktop-max}) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: #{$bp-tablet}) {
+    @content;
+  }
+}

@@ -5,16 +5,14 @@
     <span class="app-title">HTW Studyplanner</span>
   </div>
 
-  <!-- 2. Rollenbasierte Navigation -->
-  <nav class="nav-links">
-    @if (authService.aktuelleRolle() === 'STUDIERENDE') {
-      <a routerLink="/modules" class="nav-link">Module</a>
-      <a routerLink="/plan" class="nav-link">Mein Studienplan</a>
-    } @else if (authService.aktuelleRolle() === 'PROFESSOR_IN') {
-      <a routerLink="/dashboard" class="nav-link">Dashboard</a>
-      <a routerLink="/modules" class="nav-link">Modulangebote</a>
-    }
-  </nav>
+  <!-- 2. Rollenbasierte Navigation (Desktop >= 960 px) -->
+  @if (!istKompakt()) {
+    <nav class="nav-links" aria-label="Hauptnavigation">
+      @for (punkt of navPunkte(); track punkt.route) {
+        <a [routerLink]="punkt.route" routerLinkActive="active-link" class="nav-link">{{ punkt.label }}</a>
+      }
+    </nav>
+  }
 
   <span class="spacer"></span>
 
@@ -24,16 +22,17 @@
       [class.backend-status--online]="healthStatus() === 'online'"
       [class.backend-status--offline]="healthStatus() === 'offline'"
       [title]="healthStatus() === 'online' ? 'Backend erreichbar' : 'Backend nicht erreichbar'"
+      [attr.aria-label]="healthStatus() === 'online' ? 'Backend online' : 'Backend offline'"
     >
       <span class="backend-status__dot"></span>
-      <span>{{ healthStatus() === 'online' ? 'Backend online' : 'Backend offline' }}</span>
+      <span class="backend-status__label">{{ healthStatus() === 'online' ? 'Backend online' : 'Backend offline' }}</span>
     </div>
   }
 
   <!-- 3. Benutzerbereich (Login oder Angemeldet + Logout) -->
   <div class="user-section">
     @if (authService.aktuelleRolle() === null) {
-      @if (authService.sitzungAbgelaufen()) {
+      @if (!istKompakt() && authService.sitzungAbgelaufen()) {
         <span class="session-hinweis">Sitzung abgelaufen. Bitte erneut anmelden.</span>
       }
 
@@ -101,22 +100,70 @@
         </div>
       </mat-menu>
     } @else {
-      <!-- Wenn ANGEMELDET: Rolle, E-Mail und sichtbarer Logout-Button -->
-      <div class="logged-in-badge">
-        <mat-icon>{{ authService.aktuelleRolle() === 'STUDIERENDE' ? 'school' : 'psychology' }}</mat-icon>
-        <span>{{ rolleLabel() }}</span>
-        <span class="user-email">{{ authService.email() }}</span>
-      </div>
+      @if (!istKompakt()) {
+        <!-- Wenn ANGEMELDET (Desktop >= 960 px): Rolle, E-Mail, Profil und Logout-Button -->
+        <div class="logged-in-badge">
+          <mat-icon>{{ authService.aktuelleRolle() === 'STUDIERENDE' ? 'school' : 'psychology' }}</mat-icon>
+          <span>{{ rolleLabel() }}</span>
+          <span class="user-email">{{ authService.email() }}</span>
+        </div>
 
-      <a routerLink="/profile" mat-button class="profile-btn" title="Mein Profil">
-        <mat-icon>manage_accounts</mat-icon>
-        <span>Profil</span>
-      </a>
+        <a routerLink="/profile" mat-button class="profile-btn" title="Mein Profil">
+          <mat-icon>manage_accounts</mat-icon>
+          <span>Profil</span>
+        </a>
 
-      <button mat-button (click)="logout()" class="logout-btn" title="Vom System abmelden">
-        <mat-icon>logout</mat-icon>
-        <span>Logout</span>
-      </button>
+        <button mat-button (click)="logout()" class="logout-btn" title="Vom System abmelden">
+          <mat-icon>logout</mat-icon>
+          <span>Logout</span>
+        </button>
+      } @else {
+        <!-- Wenn ANGEMELDET (Mobil/Tablet < 960 px): Menü-Button mit mat-menu -->
+        <button
+          mat-icon-button
+          type="button"
+          [matMenuTriggerFor]="mobileNavMenu"
+          class="mobile-menu-btn"
+          aria-label="Navigationsmenü öffnen"
+        >
+          <mat-icon>menu</mat-icon>
+        </button>
+
+        <mat-menu #mobileNavMenu="matMenu" xPosition="before" class="mobile-nav-menu-panel">
+          <div class="mobile-menu-user" (click)="$event.stopPropagation()">
+            <div class="mobile-menu-user__role">
+              <mat-icon>{{ authService.aktuelleRolle() === 'STUDIERENDE' ? 'school' : 'psychology' }}</mat-icon>
+              <span>{{ rolleLabel() }}</span>
+            </div>
+            <span class="mobile-menu-user__email">{{ authService.email() }}</span>
+          </div>
+
+          <mat-divider />
+
+          @for (punkt of navPunkte(); track punkt.route) {
+            <a mat-menu-item [routerLink]="punkt.route" routerLinkActive="mobile-nav-item--active">
+              <mat-icon>{{ punkt.icon }}</mat-icon>
+              <span>{{ punkt.label }}</span>
+            </a>
+          }
+
+          <a mat-menu-item routerLink="/profile" routerLinkActive="mobile-nav-item--active">
+            <mat-icon>manage_accounts</mat-icon>
+            <span>Profil</span>
+          </a>
+
+          <mat-divider />
+
+          <button mat-menu-item type="button" class="mobile-logout-item" (click)="logout()">
+            <mat-icon>logout</mat-icon>
+            <span>Logout</span>
+          </button>
+        </mat-menu>
+      }
     }
   </div>
 </mat-toolbar>
+
+@if (istKompakt() && authService.aktuelleRolle() === null && authService.sitzungAbgelaufen()) {
+  <div class="session-hinweis-banner" role="status">Sitzung abgelaufen. Bitte erneut anmelden.</div>
+}

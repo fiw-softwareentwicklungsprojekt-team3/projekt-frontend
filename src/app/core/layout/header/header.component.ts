@@ -1,17 +1,29 @@
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, OnInit, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule, NgForm } from '@angular/forms';
-import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { map } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { HealthService } from '../../services/health.service';
 import { ApiFehler } from '../../services/registration.service';
 import { HTW_EMAIL_LOGIN } from '../../validation/htw-email';
+import { APP_BREAKPOINTS } from '../breakpoints';
+
+/** Eintrag für die Hauptnavigation im Header (Desktop-Leiste und Mobile-Menü). */
+export interface NavPunkt {
+  label: string;
+  route: string;
+  icon: string;
+}
 
 /**
  * Kopfzeile der App: Navigation nach Rolle, Backend-Status sowie Login-Menü und Logout.
@@ -20,9 +32,11 @@ import { HTW_EMAIL_LOGIN } from '../../validation/htw-email';
   selector: 'app-header',
   imports: [
     RouterLink,
+    RouterLinkActive,
     FormsModule,
     MatToolbarModule,
     MatButtonModule,
+    MatDividerModule,
     MatIconModule,
     MatMenuModule,
     MatFormFieldModule,
@@ -35,6 +49,31 @@ export class HeaderComponent implements OnInit {
   protected readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly healthService = inject(HealthService);
+  private readonly breakpointObserver = inject(BreakpointObserver);
+
+  /** Erkennt schmale und mittlere Bildschirme (< 960 px: Mobil und Tablet) für das kompakte Navigationsmenü. */
+  protected readonly istKompakt = toSignal(
+    this.breakpointObserver.observe(APP_BREAKPOINTS.compactNav).pipe(map((state) => state.matches)),
+    { initialValue: false }
+  );
+
+  /** Rollenabhängige Navigationspunkte für Desktop- und Mobilansicht. */
+  protected readonly navPunkte = computed<readonly NavPunkt[]>(() => {
+    const rolle = this.authService.aktuelleRolle();
+    if (rolle === 'STUDIERENDE') {
+      return [
+        { label: 'Module', route: '/modules', icon: 'menu_book' },
+        { label: 'Mein Studienplan', route: '/plan', icon: 'calendar_month' }
+      ];
+    }
+    if (rolle === 'PROFESSOR_IN') {
+      return [
+        { label: 'Dashboard', route: '/dashboard', icon: 'dashboard' },
+        { label: 'Modulangebote', route: '/modules', icon: 'menu_book' }
+      ];
+    }
+    return [];
+  });
 
   // Status der Backend-Verbindung; als Signal, damit die Anzeige ohne zone.js aktualisiert wird.
   protected readonly healthStatus = signal<'online' | 'offline' | 'unknown'>('unknown');

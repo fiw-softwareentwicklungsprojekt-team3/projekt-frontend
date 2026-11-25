@@ -67,12 +67,6 @@ describe('rolleGuard und startseiteGuard', () => {
     expect(url(pruefe(rolleGuard('PROFESSOR_IN')))).toBe('/login');
   });
 
-  it('sollte trotz Token auf /login leiten, wenn keine Rolle geladen werden konnte', () => {
-    localStorage.setItem(TOKEN_KEY, 'token');
-
-    expect(url(pruefe(rolleGuard('PROFESSOR_IN')))).toBe('/login');
-  });
-
   // Das Token ist noch gespeichert, aber GET /api/me ist beim Start fehlgeschlagen (Rolle bleibt leer).
   it('sollte trotz Token auf /login leiten, wenn keine Rolle geladen werden konnte', () => {
     localStorage.setItem(TOKEN_KEY, 'token');

@@ -412,6 +412,7 @@ describe('ModulesComponent – Mobile Kartenansicht (< 600 px)', () => {
 
     const ersteKarte = fixture.nativeElement.querySelector('.module-card') as HTMLElement;
     const trigger = ersteKarte.querySelector('.module-card__trigger') as HTMLButtonElement;
+    expect(trigger.getAttribute('aria-label')).toBe('Details zu Modul B11 anzeigen');
     trigger.click();
     fixture.detectChanges();
 
@@ -437,10 +438,12 @@ describe('ModulesComponent – Mobile Kartenansicht (< 600 px)', () => {
 
     expect(ersteKarte.querySelector('.detail-panel')).toBeTruthy();
     expect(ersteKarte.textContent).toContain('Mindestens 5 LP');
+    expect(trigger.getAttribute('aria-label')).toBe('Details zu Modul B11 ausblenden');
 
     trigger.click();
     fixture.detectChanges();
 
     expect(ersteKarte.querySelector('.detail-panel')).toBeNull();
+    expect(trigger.getAttribute('aria-label')).toBe('Details zu Modul B11 anzeigen');
   });
 });

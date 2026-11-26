@@ -252,7 +252,7 @@ import { ApiFehler } from '../../core/services/registration.service';
                   type="button"
                   class="module-card__trigger"
                   [attr.aria-expanded]="ausgewaehlterCode() === modul.code"
-                  [attr.aria-label]="'Details zu Modul ' + modul.code + ' anzeigen'"
+                  [attr.aria-label]="'Details zu Modul ' + modul.code + (ausgewaehlterCode() === modul.code ? ' ausblenden' : ' anzeigen')"
                   (click)="waehleModul(modul.code)"
                 >
                   <div class="module-card__top">
@@ -346,7 +346,7 @@ import { ApiFehler } from '../../core/services/registration.service';
                 tabindex="0"
                 role="button"
                 [attr.aria-expanded]="ausgewaehlterCode() === row.code"
-                [attr.aria-label]="'Details zu Modul ' + row.code + ' anzeigen'"
+                [attr.aria-label]="'Details zu Modul ' + row.code + (ausgewaehlterCode() === row.code ? ' ausblenden' : ' anzeigen')"
                 (click)="waehleModul(row.code)"
                 (keydown.enter)="waehleModul(row.code)"
                 (keydown.space)="waehleModul(row.code); $event.preventDefault()"

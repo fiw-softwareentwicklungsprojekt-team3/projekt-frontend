@@ -42,8 +42,9 @@ html, body {
   --status-gesperrt: #d32f2f;      // Rot für gesperrt / nicht bestanden
   --status-offen: #757575;         // Grau für offen / noch nicht belegt
 
-  // Zentrale Breakpoints (Referenzwerte; SCSS-Mixins in src/styles/_breakpoints.scss,
-  // Media-Queries für BreakpointObserver in src/app/core/layout/breakpoints.ts):
+  // Zentrale Breakpoints (dienen hier nur zur Dokumentation/Referenz, da var() in
+  // @media-Queries nicht nutzbar ist; im Code werden die SCSS-Mixins in
+  // src/styles/_breakpoints.scss und APP_BREAKPOINTS in src/app/core/layout/breakpoints.ts verwendet):
   --bp-mobile: #{bp.$bp-mobile};
   --bp-tablet: #{bp.$bp-tablet};
   --bp-desktop: #{bp.$bp-desktop};

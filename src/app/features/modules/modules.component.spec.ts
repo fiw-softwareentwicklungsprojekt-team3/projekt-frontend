@@ -1,6 +1,9 @@
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
+import { APP_BREAKPOINTS } from '../../core/layout/breakpoints';
 import { ModuleDetailDto, ModuleDto } from '../../core/services/module.service';
 import { ModulesComponent } from './modules.component';
 
@@ -301,5 +304,143 @@ describe('ModulesComponent', () => {
     expect(element.textContent).toContain(
       'Der Server ist gerade nicht erreichbar. Bitte später erneut versuchen.',
     );
+  });
+});
+
+describe('ModulesComponent – Mobile Kartenansicht (< 600 px)', () => {
+  let fixture: ComponentFixture<ModulesComponent>;
+  let httpMock: HttpTestingController;
+
+  const testModule: ModuleDto[] = [
+    {
+      code: 'B34',
+      name: 'Softwareentwicklungsprojekt',
+      semester: 3,
+      type: 'P',
+      lp: 10,
+      lectureHours: 0,
+      exerciseHours: 6,
+      term: 'WS',
+    },
+    {
+      code: 'B12',
+      name: 'Rechnerarchitektur/Betriebssysteme',
+      semester: 1,
+      type: 'P',
+      lp: 5,
+      lectureHours: 2,
+      exerciseHours: 2,
+      term: 'WS',
+    },
+    {
+      code: 'B11',
+      name: 'Programmierung 1',
+      semester: 1,
+      type: 'P',
+      lp: 6,
+      lectureHours: 4,
+      exerciseHours: 2,
+      term: 'WS',
+    },
+    {
+      code: 'B41',
+      name: 'Wahlpflichtmodul (Wirtschafts-)Informatik 1',
+      semester: 4,
+      type: 'WP',
+      lp: 5,
+      lectureHours: 0,
+      exerciseHours: 4,
+      term: 'SS',
+    },
+  ];
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [ModulesComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        {
+          provide: BreakpointObserver,
+          useValue: {
+            observe: (query: string) =>
+              of({ matches: query === APP_BREAKPOINTS.mobile, breakpoints: {} }),
+          },
+        },
+      ],
+    }).compileComponents();
+
+    httpMock = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(ModulesComponent);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  it('rendert unter 600 px eine sortierte Kartenansicht statt der Tabelle', () => {
+    fixture.detectChanges();
+    httpMock.expectOne('/api/modules').flush(testModule);
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('table[mat-table]')).toBeNull();
+    expect(element.querySelector('.module-cards')).toBeTruthy();
+
+    const karten = Array.from(element.querySelectorAll('.module-card'));
+    expect(karten.length).toBe(4);
+
+    expect(karten[0].textContent).toContain('B11');
+    expect(karten[0].textContent).toContain('Programmierung 1');
+    expect(karten[0].textContent).toContain('P');
+    expect(karten[0].textContent).toContain('1. Sem.');
+    expect(karten[0].textContent).toContain('6 LP');
+    expect(karten[0].textContent).toContain('WS');
+    expect(karten[0].textContent).toContain('6 (4V + 2Ü) SWS');
+
+    expect(karten[1].textContent).toContain('B12');
+    expect(karten[2].textContent).toContain('B34');
+    expect(karten[3].textContent).toContain('B41');
+    expect(karten[3].textContent).toContain('WP');
+    expect(karten[3].textContent).toContain('SS');
+  });
+
+  it('öffnet und schließt bei Klick auf eine Karte die Detailansicht innerhalb derselben Karte', () => {
+    fixture.detectChanges();
+    httpMock.expectOne('/api/modules').flush(testModule);
+    fixture.detectChanges();
+
+    const ersteKarte = fixture.nativeElement.querySelector('.module-card') as HTMLElement;
+    const trigger = ersteKarte.querySelector('.module-card__trigger') as HTMLButtonElement;
+    trigger.click();
+    fixture.detectChanges();
+
+    const detailReq = httpMock.expectOne('/api/modules/B11');
+    const detail: ModuleDetailDto = {
+      code: 'B11',
+      name: 'Programmierung 1',
+      semester: 1,
+      type: 'P',
+      area: 'FACH',
+      hasChoice: false,
+      lp: 6,
+      lectureHours: 4,
+      exerciseHours: 2,
+      level: '1a',
+      term: 'WS',
+      countsForFinalGrade: false,
+      graded: true,
+      prerequisites: [{ kind: 'EMPFOHLEN', minLp: 5 }],
+    };
+    detailReq.flush(detail);
+    fixture.detectChanges();
+
+    expect(ersteKarte.querySelector('.detail-panel')).toBeTruthy();
+    expect(ersteKarte.textContent).toContain('Mindestens 5 LP');
+
+    trigger.click();
+    fixture.detectChanges();
+
+    expect(ersteKarte.querySelector('.detail-panel')).toBeNull();
   });
 });

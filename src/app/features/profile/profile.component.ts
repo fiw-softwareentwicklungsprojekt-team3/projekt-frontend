@@ -113,6 +113,8 @@ function mehereWintersemester(startSem?: string | null, anzahl = 8, heute = new 
     </section>
   `,
   styles: [`
+    @use '../../../styles/breakpoints' as bp;
+
     .page-container {
       max-width: 600px;
       margin: 2rem auto;
@@ -162,6 +164,7 @@ function mehereWintersemester(startSem?: string | null, anzahl = 8, heute = new 
     .info-text {
       display: flex;
       flex-direction: column;
+      min-width: 0;
     }
 
     .info-label {
@@ -173,6 +176,7 @@ function mehereWintersemester(startSem?: string | null, anzahl = 8, heute = new 
     .info-value {
       font-size: 1rem;
       font-weight: 500;
+      overflow-wrap: anywhere;
     }
 
     .semester-form {
@@ -197,12 +201,30 @@ function mehereWintersemester(startSem?: string | null, anzahl = 8, heute = new 
       color: var(--status-gesperrt, #d32f2f);
       font-size: 0.875rem;
       margin: 0;
+      overflow-wrap: break-word;
     }
 
     .allgemeiner-fehler {
       color: var(--status-gesperrt, #d32f2f);
       font-size: 0.875rem;
       margin: 0;
+      overflow-wrap: break-word;
+    }
+
+    @include bp.mobile {
+      .page-container {
+        margin: 0;
+        padding: 0;
+      }
+
+      h1 {
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+      }
+
+      .speichern-btn {
+        align-self: stretch;
+      }
     }
   `],
 })

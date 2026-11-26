@@ -1,5 +1,8 @@
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { NgTemplateOutlet } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -7,7 +10,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
-import { Subscription } from 'rxjs';
+import { Subscription, map } from 'rxjs';
+import { APP_BREAKPOINTS } from '../../core/layout/breakpoints';
 import {
   ModuleDetailDto,
   ModuleDto,
@@ -17,14 +21,16 @@ import {
 import { ApiFehler } from '../../core/services/registration.service';
 
 /**
- * Modulkatalog-Ansicht (/modules): zeigt alle Module tabellarisch (mat-table),
- * bietet kombinierbare Filter (semester, type, term) und lädt bei Klick die
- * Detailansicht direkt unterhalb des jeweiligen Moduls samt StuPO-Voraussetzungen (NOTWENDIG / EMPFOHLEN).
+ * Modulkatalog-Ansicht (/modules): zeigt alle Module tabellarisch (mat-table) bzw. unter 600 px
+ * als kompakte Kartenansicht, bietet kombinierbare Filter (semester, type, term) und lädt bei
+ * Klick die Detailansicht direkt unterhalb des jeweiligen Moduls samt StuPO-Voraussetzungen
+ * (NOTWENDIG / EMPFOHLEN).
  */
 @Component({
   selector: 'app-modules',
   standalone: true,
   imports: [
+    NgTemplateOutlet,
     FormsModule,
     MatTableModule,
     MatFormFieldModule,
@@ -109,210 +115,258 @@ import { ApiFehler } from '../../core/services/registration.service';
       } @else if (module().length === 0) {
         <p class="empty-hint">Keine Module für die gewählten Filter gefunden.</p>
       } @else {
-        <div class="table-container">
-          <table mat-table [dataSource]="module()" multiTemplateDataRows class="modules-table">
-            <ng-container matColumnDef="code">
-              <th mat-header-cell *matHeaderCellDef>Code</th>
-              <td mat-cell *matCellDef="let modul">
-                <strong>{{ modul.code }}</strong>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="name">
-              <th mat-header-cell *matHeaderCellDef>Name</th>
-              <td mat-cell *matCellDef="let modul">{{ modul.name }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="semester">
-              <th mat-header-cell *matHeaderCellDef class="col-semester">Fachsemester</th>
-              <td mat-cell *matCellDef="let modul" class="col-semester">{{ modul.semester }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="type">
-              <th mat-header-cell *matHeaderCellDef>Art</th>
-              <td mat-cell *matCellDef="let modul">
-                <span class="type-badge" [class.type-badge--wp]="modul.type === 'WP'">
-                  {{ modul.type }}
-                </span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="lp">
-              <th mat-header-cell *matHeaderCellDef>LP</th>
-              <td mat-cell *matCellDef="let modul">{{ modul.lp }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="sws">
-              <th mat-header-cell *matHeaderCellDef>SWS</th>
-              <td mat-cell *matCellDef="let modul">{{ formatSws(modul) }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="term">
-              <th mat-header-cell *matHeaderCellDef>Turnus</th>
-              <td mat-cell *matCellDef="let modul">{{ modul.term }}</td>
-            </ng-container>
-
-            <!-- Ausklappbare Detailzeile direkt unterhalb des angeklickten Moduls -->
-            <ng-container matColumnDef="expandedDetail">
-              <td
-                mat-cell
-                *matCellDef="let modul"
-                [attr.colspan]="displayedColumns.length"
-                class="detail-cell"
-              >
-                @if (ausgewaehlterCode() === modul.code) {
-                  <div class="detail-panel" role="region" aria-label="Moduldetails">
-                    <div class="detail-header">
-                      <h2>
-                        @if (modulDetail(); as detail) {
-                          {{ detail.code }} – {{ detail.name }}
-                        } @else {
-                          {{ modul.code }} – {{ modul.name }}
-                        }
-                      </h2>
-                      <button
-                        mat-icon-button
-                        type="button"
-                        aria-label="Detailansicht schließen"
-                        (click)="schliesseDetail(); $event.stopPropagation()"
-                      >
-                        <mat-icon>close</mat-icon>
-                      </button>
-                    </div>
-
-                    @if (detailLaedt()) {
-                      <div class="status-box" role="status">
-                        <mat-spinner diameter="28" />
-                        <span>Moduldetails werden geladen…</span>
-                      </div>
-                    } @else if (detailFehler()) {
-                      <p class="fehler" role="alert">{{ detailFehler() }}</p>
-                    } @else if (modulDetail(); as detail) {
-                      <div class="detail-meta-grid">
-                        <div class="meta-item">
-                          <span class="meta-label">Fachsemester</span>
-                          <span class="meta-value">{{ detail.semester }}. Semester</span>
-                        </div>
-                        <div class="meta-item">
-                          <span class="meta-label">Modulart</span>
-                          <span class="meta-value">
-                            <span class="type-badge" [class.type-badge--wp]="detail.type === 'WP'">
-                              {{ detail.type === 'P' ? 'Pflicht (P)' : 'Wahlpflicht (WP)' }}
-                            </span>
-                          </span>
-                        </div>
-                        <div class="meta-item">
-                          <span class="meta-label">Bereich</span>
-                          <span class="meta-value">{{ detail.area }}</span>
-                        </div>
-                        <div class="meta-item">
-                          <span class="meta-label">Leistungspunkte</span>
-                          <span class="meta-value">{{ detail.lp }} LP</span>
-                        </div>
-                        <div class="meta-item">
-                          <span class="meta-label">SWS</span>
-                          <span class="meta-value">{{ formatSws(detail) }}</span>
-                        </div>
-                        <div class="meta-item">
-                          <span class="meta-label">Turnus</span>
-                          <span class="meta-value">{{ detail.term }}</span>
-                        </div>
-                        <div class="meta-item">
-                          <span class="meta-label">Niveaustufe</span>
-                          <span class="meta-value">{{ detail.level ?? '–' }}</span>
-                        </div>
-                        <div class="meta-item">
-                          <span class="meta-label">Bewertung</span>
-                          <span class="meta-value">
-                            {{ detail.graded ? 'Benotet' : 'Unbenotet' }}
-                            ({{
-                              detail.countsForFinalGrade
-                                ? 'zählt für Gesamtnote'
-                                : 'ohne Gesamtnote'
-                            }})
-                          </span>
-                        </div>
-                      </div>
-
-                      <div class="prerequisites-section">
-                        <h3>Voraussetzungen laut StuPO</h3>
-                        @if (detail.prerequisites.length === 0) {
-                          <p class="no-prerequisites">Keine Voraussetzungen</p>
-                        } @else {
-                          @if (notwendigeVoraussetzungen().length > 0) {
-                            <div class="prerequisite-group">
-                              <h4 class="group-title group-title--notwendig">
-                                Notwendige Voraussetzungen (NOTWENDIG)
-                              </h4>
-                              <ul class="prerequisite-list">
-                                @for (voraus of notwendigeVoraussetzungen(); track $index) {
-                                  <li class="prerequisite-item prerequisite-item--notwendig">
-                                    <span class="kind-badge kind-badge--notwendig">{{
-                                      voraus.kind
-                                    }}</span>
-                                    <span class="prerequisite-text">{{
-                                      formatVoraussetzung(voraus)
-                                    }}</span>
-                                  </li>
-                                }
-                              </ul>
-                            </div>
-                          }
-
-                          @if (empfohleneVoraussetzungen().length > 0) {
-                            <div class="prerequisite-group">
-                              <h4 class="group-title group-title--empfohlen">
-                                Empfohlene Voraussetzungen (EMPFOHLEN)
-                              </h4>
-                              <ul class="prerequisite-list">
-                                @for (voraus of empfohleneVoraussetzungen(); track $index) {
-                                  <li class="prerequisite-item prerequisite-item--empfohlen">
-                                    <span class="kind-badge kind-badge--empfohlen">{{
-                                      voraus.kind
-                                    }}</span>
-                                    <span class="prerequisite-text">{{
-                                      formatVoraussetzung(voraus)
-                                    }}</span>
-                                  </li>
-                                }
-                              </ul>
-                            </div>
-                          }
-                        }
-                      </div>
-                    }
-                  </div>
+        <!-- Gemeinsames Detail-Panel für Desktop-Tabelle und Mobile-Kartenansicht -->
+        <ng-template #detailInhalt let-modul>
+          <div class="detail-panel" role="region" aria-label="Moduldetails">
+            <div class="detail-header">
+              <h2>
+                @if (modulDetail(); as detail) {
+                  {{ detail.code }} – {{ detail.name }}
+                } @else {
+                  {{ modul.code }} – {{ modul.name }}
                 }
-              </td>
-            </ng-container>
+              </h2>
+              <button
+                mat-icon-button
+                type="button"
+                aria-label="Detailansicht schließen"
+                (click)="schliesseDetail(); $event.stopPropagation()"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
 
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr
-              mat-row
-              *matRowDef="let row; columns: displayedColumns"
-              class="module-row"
-              [class.module-row--selected]="ausgewaehlterCode() === row.code"
-              tabindex="0"
-              role="button"
-              [attr.aria-expanded]="ausgewaehlterCode() === row.code"
-              [attr.aria-label]="'Details zu Modul ' + row.code + ' anzeigen'"
-              (click)="waehleModul(row.code)"
-              (keydown.enter)="waehleModul(row.code)"
-              (keydown.space)="waehleModul(row.code); $event.preventDefault()"
-            ></tr>
-            <tr
-              mat-row
-              *matRowDef="let row; columns: ['expandedDetail']"
-              class="detail-row"
-              [class.detail-row--expanded]="ausgewaehlterCode() === row.code"
-            ></tr>
-          </table>
-        </div>
+            @if (detailLaedt()) {
+              <div class="status-box" role="status">
+                <mat-spinner diameter="28" />
+                <span>Moduldetails werden geladen…</span>
+              </div>
+            } @else if (detailFehler()) {
+              <p class="fehler" role="alert">{{ detailFehler() }}</p>
+            } @else if (modulDetail(); as detail) {
+              <div class="detail-meta-grid">
+                <div class="meta-item">
+                  <span class="meta-label">Fachsemester</span>
+                  <span class="meta-value">{{ detail.semester }}. Semester</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">Modulart</span>
+                  <span class="meta-value">
+                    <span class="type-badge" [class.type-badge--wp]="detail.type === 'WP'">
+                      {{ detail.type === 'P' ? 'Pflicht (P)' : 'Wahlpflicht (WP)' }}
+                    </span>
+                  </span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">Bereich</span>
+                  <span class="meta-value">{{ detail.area }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">Leistungspunkte</span>
+                  <span class="meta-value">{{ detail.lp }} LP</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">SWS</span>
+                  <span class="meta-value">{{ formatSws(detail) }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">Turnus</span>
+                  <span class="meta-value">{{ detail.term }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">Niveaustufe</span>
+                  <span class="meta-value">{{ detail.level ?? '–' }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">Bewertung</span>
+                  <span class="meta-value">
+                    {{ detail.graded ? 'Benotet' : 'Unbenotet' }}
+                    ({{
+                      detail.countsForFinalGrade
+                        ? 'zählt für Gesamtnote'
+                        : 'ohne Gesamtnote'
+                    }})
+                  </span>
+                </div>
+              </div>
+
+              <div class="prerequisites-section">
+                <h3>Voraussetzungen laut StuPO</h3>
+                @if (detail.prerequisites.length === 0) {
+                  <p class="no-prerequisites">Keine Voraussetzungen</p>
+                } @else {
+                  @if (notwendigeVoraussetzungen().length > 0) {
+                    <div class="prerequisite-group">
+                      <h4 class="group-title group-title--notwendig">
+                        Notwendige Voraussetzungen (NOTWENDIG)
+                      </h4>
+                      <ul class="prerequisite-list">
+                        @for (voraus of notwendigeVoraussetzungen(); track $index) {
+                          <li class="prerequisite-item prerequisite-item--notwendig">
+                            <span class="kind-badge kind-badge--notwendig">{{
+                              voraus.kind
+                            }}</span>
+                            <span class="prerequisite-text">{{
+                              formatVoraussetzung(voraus)
+                            }}</span>
+                          </li>
+                        }
+                      </ul>
+                    </div>
+                  }
+
+                  @if (empfohleneVoraussetzungen().length > 0) {
+                    <div class="prerequisite-group">
+                      <h4 class="group-title group-title--empfohlen">
+                        Empfohlene Voraussetzungen (EMPFOHLEN)
+                      </h4>
+                      <ul class="prerequisite-list">
+                        @for (voraus of empfohleneVoraussetzungen(); track $index) {
+                          <li class="prerequisite-item prerequisite-item--empfohlen">
+                            <span class="kind-badge kind-badge--empfohlen">{{
+                              voraus.kind
+                            }}</span>
+                            <span class="prerequisite-text">{{
+                              formatVoraussetzung(voraus)
+                            }}</span>
+                          </li>
+                        }
+                      </ul>
+                    </div>
+                  }
+                }
+              </div>
+            }
+          </div>
+        </ng-template>
+
+        @if (istMobil()) {
+          <div class="module-cards" role="list" aria-label="Modulkatalog">
+            @for (modul of module(); track modul.code) {
+              <article
+                class="module-card"
+                [class.module-card--selected]="ausgewaehlterCode() === modul.code"
+                role="listitem"
+              >
+                <button
+                  type="button"
+                  class="module-card__trigger"
+                  [attr.aria-expanded]="ausgewaehlterCode() === modul.code"
+                  [attr.aria-label]="'Details zu Modul ' + modul.code + (ausgewaehlterCode() === modul.code ? ' ausblenden' : ' anzeigen')"
+                  (click)="waehleModul(modul.code)"
+                >
+                  <div class="module-card__top">
+                    <strong class="module-card__code">{{ modul.code }}</strong>
+                    <span class="type-badge" [class.type-badge--wp]="modul.type === 'WP'">
+                      {{ modul.type }}
+                    </span>
+                    <mat-icon class="module-card__chevron" aria-hidden="true">
+                      {{ ausgewaehlterCode() === modul.code ? 'expand_less' : 'expand_more' }}
+                    </mat-icon>
+                  </div>
+                  <div class="module-card__name">{{ modul.name }}</div>
+                  <div class="module-card__meta">
+                    <span>{{ modul.semester }}. Sem.</span>
+                    <span>{{ modul.lp }} LP</span>
+                    <span>{{ modul.term }}</span>
+                    <span>{{ formatSws(modul) }} SWS</span>
+                  </div>
+                </button>
+
+                @if (ausgewaehlterCode() === modul.code) {
+                  <ng-container *ngTemplateOutlet="detailInhalt; context: { $implicit: modul }" />
+                }
+              </article>
+            }
+          </div>
+        } @else {
+          <div class="table-container">
+            <table mat-table [dataSource]="module()" multiTemplateDataRows class="modules-table">
+              <ng-container matColumnDef="code">
+                <th mat-header-cell *matHeaderCellDef>Code</th>
+                <td mat-cell *matCellDef="let modul">
+                  <strong>{{ modul.code }}</strong>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef>Name</th>
+                <td mat-cell *matCellDef="let modul">{{ modul.name }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="semester">
+                <th mat-header-cell *matHeaderCellDef class="col-semester">Fachsemester</th>
+                <td mat-cell *matCellDef="let modul" class="col-semester">{{ modul.semester }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="type">
+                <th mat-header-cell *matHeaderCellDef>Art</th>
+                <td mat-cell *matCellDef="let modul">
+                  <span class="type-badge" [class.type-badge--wp]="modul.type === 'WP'">
+                    {{ modul.type }}
+                  </span>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="lp">
+                <th mat-header-cell *matHeaderCellDef>LP</th>
+                <td mat-cell *matCellDef="let modul">{{ modul.lp }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="sws">
+                <th mat-header-cell *matHeaderCellDef>SWS</th>
+                <td mat-cell *matCellDef="let modul">{{ formatSws(modul) }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="term">
+                <th mat-header-cell *matHeaderCellDef>Turnus</th>
+                <td mat-cell *matCellDef="let modul">{{ modul.term }}</td>
+              </ng-container>
+
+              <!-- Ausklappbare Detailzeile direkt unterhalb des angeklickten Moduls -->
+              <ng-container matColumnDef="expandedDetail">
+                <td
+                  mat-cell
+                  *matCellDef="let modul"
+                  [attr.colspan]="displayedColumns.length"
+                  class="detail-cell"
+                >
+                  @if (ausgewaehlterCode() === modul.code) {
+                    <ng-container *ngTemplateOutlet="detailInhalt; context: { $implicit: modul }" />
+                  }
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+              <tr
+                mat-row
+                *matRowDef="let row; columns: displayedColumns"
+                class="module-row"
+                [class.module-row--selected]="ausgewaehlterCode() === row.code"
+                tabindex="0"
+                role="button"
+                [attr.aria-expanded]="ausgewaehlterCode() === row.code"
+                [attr.aria-label]="'Details zu Modul ' + row.code + (ausgewaehlterCode() === row.code ? ' ausblenden' : ' anzeigen')"
+                (click)="waehleModul(row.code)"
+                (keydown.enter)="waehleModul(row.code)"
+                (keydown.space)="waehleModul(row.code); $event.preventDefault()"
+              ></tr>
+              <tr
+                mat-row
+                *matRowDef="let row; columns: ['expandedDetail']"
+                class="detail-row"
+                [class.detail-row--expanded]="ausgewaehlterCode() === row.code"
+              ></tr>
+            </table>
+          </div>
+        }
       }
     </section>
   `,
   styles: [
     `
+      @use '../../../styles/breakpoints' as bp;
+
       .page-container {
         max-width: 1100px;
         margin: 1.5rem auto;
@@ -323,16 +377,39 @@ import { ApiFehler } from '../../core/services/registration.service';
         margin: 0 0 0.25rem;
       }
 
+      .filter-bar,
+      .status-box,
+      .prerequisite-item,
+      .module-card__top {
+        display: flex;
+        align-items: center;
+      }
+
+      .prerequisite-list,
+      .module-cards,
+      .meta-item,
+      .module-card__trigger {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .subtitle,
+      .status-box,
+      .empty-hint,
+      .meta-label,
+      .no-prerequisites,
+      .module-card__chevron,
+      .module-card__meta {
+        color: var(--status-offen);
+      }
+
       .subtitle {
         margin: 0 0 1.25rem;
-        color: var(--status-offen);
         font-size: 0.95rem;
       }
 
       .filter-bar {
-        display: flex;
         flex-wrap: wrap;
-        align-items: center;
         gap: 0.75rem;
         margin-bottom: 1.25rem;
       }
@@ -348,11 +425,8 @@ import { ApiFehler } from '../../core/services/registration.service';
       }
 
       .status-box {
-        display: flex;
-        align-items: center;
         gap: 0.75rem;
         padding: 1.25rem 0;
-        color: var(--status-offen);
       }
 
       .fehler {
@@ -365,14 +439,17 @@ import { ApiFehler } from '../../core/services/registration.service';
       }
 
       .empty-hint {
-        color: var(--status-offen);
         padding: 1rem 0;
       }
 
-      .table-container {
-        background: #ffffff;
+      .table-container,
+      .module-card {
+        background: #fff;
         border-radius: 10px;
         border: 1px solid rgba(0, 0, 0, 0.08);
+      }
+
+      .table-container {
         overflow-x: auto;
       }
 
@@ -391,12 +468,12 @@ import { ApiFehler } from '../../core/services/registration.service';
 
       .module-row:hover,
       .module-row:focus-visible {
-        background-color: rgba(118, 185, 0, 0.08);
-        outline: none;
+        background: rgba(118, 185, 0, 0.08);
+        outline: 0;
       }
 
       .module-row--selected {
-        background-color: rgba(118, 185, 0, 0.16);
+        background: rgba(118, 185, 0, 0.16);
       }
 
       .detail-row:not(.detail-row--expanded) {
@@ -405,7 +482,7 @@ import { ApiFehler } from '../../core/services/registration.service';
 
       .detail-cell {
         padding: 0 !important;
-        border-bottom-width: 0;
+        border-bottom: 0;
       }
 
       .detail-row--expanded .detail-cell {
@@ -413,14 +490,18 @@ import { ApiFehler } from '../../core/services/registration.service';
       }
 
       .detail-panel {
-        padding: 1.25rem 1.5rem;
+        padding: clamp(0.9rem, 3vw, 1.25rem) clamp(1rem, 3.5vw, 1.5rem);
         background: #fafcf6;
         border-left: 4px solid var(--htw-green);
       }
 
-      .type-badge {
+      .type-badge,
+      .kind-badge {
         display: inline-block;
-        padding: 0.15rem 0.55rem;
+        padding: 0.15rem 0.5rem;
+      }
+
+      .type-badge {
         border-radius: 999px;
         font-size: 0.8rem;
         font-weight: 600;
@@ -436,39 +517,41 @@ import { ApiFehler } from '../../core/services/registration.service';
       .detail-header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
         gap: 1rem;
         margin-bottom: 0.85rem;
       }
 
       .detail-header h2 {
         margin: 0;
-        font-size: 1.15rem;
+        min-width: 0;
+        font-size: clamp(1rem, 3.5vw, 1.15rem);
+        overflow-wrap: anywhere;
       }
 
       .detail-meta-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
         gap: 0.75rem 1rem;
         padding-bottom: 1rem;
         border-bottom: 1px solid rgba(0, 0, 0, 0.08);
       }
 
       .meta-item {
-        display: flex;
-        flex-direction: column;
         gap: 0.2rem;
+        min-width: 0;
       }
 
       .meta-label {
         font-size: 0.78rem;
-        color: var(--status-offen);
         text-transform: uppercase;
         letter-spacing: 0.03em;
       }
 
-      .meta-value {
+      .meta-value,
+      .prerequisite-text {
         font-weight: 500;
+        overflow-wrap: anywhere;
       }
 
       .prerequisites-section {
@@ -482,7 +565,6 @@ import { ApiFehler } from '../../core/services/registration.service';
 
       .no-prerequisites {
         margin: 0;
-        color: var(--status-offen);
         font-style: italic;
       }
 
@@ -508,14 +590,11 @@ import { ApiFehler } from '../../core/services/registration.service';
         list-style: none;
         padding: 0;
         margin: 0;
-        display: flex;
-        flex-direction: column;
         gap: 0.4rem;
       }
 
       .prerequisite-item {
-        display: flex;
-        align-items: center;
+        flex-wrap: wrap;
         gap: 0.6rem;
         padding: 0.45rem 0.75rem;
         border-radius: 6px;
@@ -533,27 +612,104 @@ import { ApiFehler } from '../../core/services/registration.service';
       }
 
       .kind-badge {
-        display: inline-block;
-        padding: 0.15rem 0.5rem;
         border-radius: 4px;
         font-size: 0.75rem;
         font-weight: 700;
-        color: #ffffff;
+        color: #fff;
       }
 
       .kind-badge--notwendig {
-        background-color: var(--status-gesperrt);
+        background: var(--status-gesperrt);
       }
 
       .kind-badge--empfohlen {
-        background-color: var(--status-warnung);
+        background: var(--status-warnung);
+      }
+
+      .module-cards {
+        gap: 0.75rem;
+      }
+
+      .module-card {
+        overflow: hidden;
+      }
+
+      .module-card--selected {
+        border-color: var(--htw-green);
+      }
+
+      .module-card__trigger {
+        width: 100%;
+        box-sizing: border-box;
+        border: 0;
+        background: none;
+        padding: 0.85rem 1rem;
+        text-align: left;
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+        gap: 0.4rem;
+      }
+
+      .module-card--selected .module-card__trigger {
+        background: rgba(118, 185, 0, 0.14);
+      }
+
+      .module-card__top {
+        gap: 0.5rem;
+      }
+
+      .module-card__chevron {
+        margin-left: auto;
+      }
+
+      .module-card__name {
+        font-weight: 500;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+      }
+
+      .module-card__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.75rem;
+        font-size: 0.82rem;
+      }
+
+      @include bp.mobile {
+        .page-container {
+          margin: 0;
+          padding: 0;
+        }
+
+        .filter-bar {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0.65rem;
+        }
+
+        .filter-field {
+          min-width: 0;
+          flex-basis: auto;
+        }
+
+        .reset-btn {
+          height: 44px;
+        }
       }
     `,
   ],
 })
 export class ModulesComponent implements OnInit {
   private readonly moduleService = inject(ModuleService);
+  private readonly breakpointObserver = inject(BreakpointObserver);
   private ladeAbo: Subscription | null = null;
+
+  /** Erkennt schmale Bildschirme unter 600 px für die mobile Kartenansicht. */
+  protected readonly istMobil = toSignal(
+    this.breakpointObserver.observe(APP_BREAKPOINTS.mobile).pipe(map((state) => state.matches)),
+    { initialValue: false },
+  );
 
   /** Spalten der Modultabelle (mat-table). */
   protected readonly displayedColumns = [

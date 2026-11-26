@@ -187,7 +187,10 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
     }
   `,
   styles: [`
+    @use '../../../styles/breakpoints' as bp;
+
     .home-container {
+      box-sizing: border-box;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -195,6 +198,7 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
     }
 
     .card-container {
+      box-sizing: border-box;
       width: 100%;
       max-width: 480px;
       margin: 0 auto;
@@ -317,18 +321,50 @@ function letzteWintersemester(anzahl = 6, heute = new Date()): string[] {
       /* Rückt die Meldung des Backends näher an ihr Feld, der Abstand nach unten kommt vom gap. */
       margin: -0.85rem 0 0;
       padding: 0 1rem;
+      overflow-wrap: break-word;
     }
 
     .allgemeiner-fehler {
       color: var(--status-gesperrt);
       font-size: 0.85rem;
       margin-top: 0.85rem;
+      overflow-wrap: break-word;
     }
 
     .erfolg {
       color: var(--htw-green-dark);
       font-size: 0.9rem;
       margin-top: 0.75rem;
+      overflow-wrap: break-word;
+    }
+
+    @include bp.mobile {
+      .home-container {
+        padding: 0.5rem 0;
+      }
+
+      .card-header {
+        padding: 1rem 1rem 0.5rem;
+      }
+
+      .card-body {
+        padding: 0.75rem 1rem 1rem;
+      }
+
+      .card-footer {
+        padding: 0.75rem 1rem;
+      }
+
+      .modus-umschalter {
+        gap: 0.35rem;
+      }
+
+      .modus-btn {
+        padding: 0.5rem 0.35rem;
+        gap: 0.3rem;
+        font-size: 0.85rem;
+        min-width: 0;
+      }
     }
   `]
 })
